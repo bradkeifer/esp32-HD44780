@@ -1,0 +1,4 @@
+set(COMPONENT_ADD_INCLUDEDIRS driver/include)
+set(COMPONENT_REQUIRES driver)
+set(COMPONENT_SRCS driver/HD44780.c)
+register_component()

@@ -1,0 +1,21 @@
+menu "LCD Display configuration"
+
+    choice HARDWARE_I2C_PORT
+        bool "I2C peripheral to use"
+        default HARDWARE_I2C_PORT0
+
+        config HARDWARE_I2C_PORT0
+            bool "I2C0"
+        config HARDWARE_I2C_PORT1
+            bool "I2C1"
+
+    endchoice
+
+    config I2C_CLK_FREQ
+        int "I2C clk frequency"
+        default 100000
+        range 100000 400000
+        help
+            Increasing this value can reduce the execution time of the display.
+            Please refer to the relevant instructions of the display to adjust the value.
+endmenu
