@@ -1,0 +1,66 @@
+menu "Example Configuration"
+
+    choice HARDWARE_I2C_PORT
+        bool "I2C peripheral to use"
+        default HARDWARE_I2C_PORT0
+
+        config HARDWARE_I2C_PORT0
+            bool "I2C0"
+        config HARDWARE_I2C_PORT1
+            bool "I2C1"
+
+    endchoice
+
+    config I2C_CLK_FREQ
+        int "I2C clk frequency"
+        default 200000
+        range 100000 4000000
+        help
+            Increasing this value can reduce the execution time of the display.
+            Please refer to the relevant instructions of the display to adjust the value.
+
+    config SDA_GPIO
+        int "SDA GPIO number"
+        range 0 48
+        default 8 if IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
+        default 18 if IDF_TARGET_ESP32S2
+        default 48 if IDF_TARGET_ESP32S3
+        default 13
+        help
+            GPIO number (IOxx) to be used for I2C Serial Data Line (SDA).
+            Some GPIOs are used for other purposes (flash connections, etc.) and cannot be used for I2C comms.
+
+    config SCL_GPIO
+        int "SCL GPIO number"
+        range 0 48
+        default 8 if IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
+        default 18 if IDF_TARGET_ESP32S2
+        default 48 if IDF_TARGET_ESP32S3
+        default 16
+        help
+            GPIO number (IOxx) to be used for I2C Serical Clock (SCL).
+            Some GPIOs are used for other purposes (flash connections, etc.) and cannot be used for I2C comms.
+
+    config LCD_ADDR
+        hex "LCD Address"
+        range 0x00 0xff
+        default 0x3f
+        help
+            The address of the LCD on the i2c bus. The default address for PCF8574 chips is 0x27 and
+            for PCF8574A chips is 0x3f.
+
+    config LCD_ROWS
+        int "LCD Rows"
+        range 1 4
+        default 4
+        help
+            The number of rows in the display
+
+    config LCD_COLUMNS
+        int "LCD Columns"
+        range 1 20
+        default 20
+        help
+            The number of columns in the display
+
+endmenu
