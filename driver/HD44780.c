@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "driver/i2c.h"
-#define LOG_LOCAL_LEVEL ESP_LOG_ERROR
+#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
 #include "esp_log.h"
 #include "esp_check.h"
 #include "freertos/FreeRTOS.h"
@@ -84,7 +84,6 @@ static const char *TAG = "LCD Driver";
 static uint8_t lcd_addr;
 static uint8_t lcd_rows;
 static uint8_t displayControl;
-static uint8_t displayMode;
 static uint8_t backlightVal;
 
 /**
@@ -110,7 +109,7 @@ esp_err_t lcd_init(lcd_handle_t *handle)
     else
         handle->display_function = LCD_4BIT_MODE | LCD_2LINE | LCD_5x8DOTS;
     handle->display_control = LCD_DISPLAY_ON | LCD_CURSOR_OFF | LCD_BLINK_OFF;
-    handle->display_mode = LCD_ENTRY_LEFT | LCD_ENTRY_SHIFT_DECREMENT;
+    handle->display_mode = LCD_ENTRY_INCREMENT | LCD_ENTRY_DISPLAY_NO_SHIFT;
     handle->cursor_column = 0;
     handle->cursor_row = 0;
     handle->backlight = LCD_BACKLIGHT;
@@ -126,17 +125,22 @@ esp_err_t lcd_init(lcd_handle_t *handle)
 
     // --- Busy flag now available ---
     // Set Display Function: # line, font size, etc.
+    // 37us max execution time with 270kHz clock
     lcd_write_byte(LCD_FUNCTION_SET | handle->display_function, LCD_COMMAND); // Set mode, lines, and font
     ets_delay_us(80);
 
     // turn the display on with no cursor or blinking default
+    // 37us max execution time with 270kHz clock
     lcd_display();
 
     // Clear Display instruction
-    lcd_clearScreen();
+    // Max execution time not specified
+    lcd_clear_screen(handle);
 
-    // Entry Mode Set instruction
-    lcd_write_byte(LCD_ENTRY_MODE_SET | handle->display_mode, LCD_COMMAND); // Set desired shift characteristics
+    // Entry Mode Set instruction.
+    // Sets cursor move direction and specifies display shift
+    // 37us max execution time with 270kHz clock
+    lcd_write_byte(LCD_ENTRY_MODE_SET | handle->display_mode, LCD_COMMAND);
     ets_delay_us(80);
 
     lcd_home(handle);
@@ -145,42 +149,138 @@ esp_err_t lcd_init(lcd_handle_t *handle)
 
 }
 
-void lcd_writeChar(char c)
+esp_err_t lcd_write_char(lcd_handle_t *handle, char c)
 {
-    lcd_write_byte(c, LCD_WRITE); // Write data to DDRAM
+    esp_err_t ret = ESP_OK;
+    int8_t new_column = (int8_t) handle->cursor_column;
+
+    ESP_GOTO_ON_FALSE(handle, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
+    ESP_GOTO_ON_FALSE(c, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
+
+    // Check for column overflow. Need to understand display behaviour and then
+    // determine appropriate handling procedure
+    if (handle->display_mode && LCD_ENTRY_INCREMENT)
+    {
+        if(++new_column > handle->columns)
+        {
+            ESP_LOGW(TAG,
+                "lcd_write_char(): Column overflow. Current=%d, new=%d",
+                handle->cursor_column, new_column
+            );
+        }
+    }
+    else if (handle->display_mode && LCD_ENTRY_DECREMENT)
+    {
+        if(--new_column < 0)
+        {
+            ESP_LOGW(TAG,
+                "lcd_write_char(): Column underflow. Current=%d, new=%d",
+                handle->cursor_column, new_column
+            );
+            new_column = 0; // prevent actual underflow
+        }
+    }
+
+    // Write data to DDRAM
+    ESP_GOTO_ON_ERROR(
+        lcd_write_byte(c, LCD_WRITE),
+        err, TAG, "Error with lcd_write_byte()"
+    );
+
+    // Update the cursor position details in the LCD handle
+    ESP_LOGD(TAG,"lcd_write_char:Current column=%d, new column=%d",
+        handle->cursor_column, new_column
+    );
+    handle->cursor_column = (uint8_t) new_column;
+    return ret;
+err:
+    return ret;
 }
 
-void lcd_writeStr(char *str)
+void lcd_writeStr(lcd_handle_t *handle, char *str)
 {
     while (*str)
     {
-        lcd_writeChar(*str++);
+        lcd_write_char(handle, *str++);
     }
 }
 
-void lcd_home(lcd_handle_t *handle)
+esp_err_t lcd_home(lcd_handle_t *handle)
 {
-    lcd_write_byte(LCD_HOME, LCD_COMMAND);
+    esp_err_t ret = ESP_OK;
+
+    ESP_GOTO_ON_FALSE(handle, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
+
+    ESP_GOTO_ON_ERROR(
+        lcd_write_byte(LCD_HOME, LCD_COMMAND),
+        err, TAG, "Error with lcd_write_byte()"
+    );
+
     handle->cursor_row = 0;
     handle->cursor_column = 0;
     vTaskDelay(2 / portTICK_PERIOD_MS); // This command takes a while to complete
+
+    return ESP_OK;
+err:
+    ESP_LOGE(TAG, "lcd_home:%s", esp_err_to_name(ret));
+    return ret;
+}
+
+esp_err_t lcd_set_cursor(lcd_handle_t *handle, uint8_t column, uint8_t row)
+{
+    esp_err_t ret;
+    bool valid_arg = false;
+    uint8_t row_offsets[] = {LCD_LINEONE, LCD_LINETWO, LCD_LINETHREE, LCD_LINEFOUR};
+
+    ESP_GOTO_ON_FALSE(handle, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
+
+    valid_arg = ((column < handle->columns) ? true : false);
+    ESP_GOTO_ON_FALSE(valid_arg, ESP_ERR_INVALID_ARG, err, TAG, "Invalid column argument");
+
+    valid_arg = ((row < handle->rows) ? true : false);
+    ESP_GOTO_ON_FALSE(valid_arg, ESP_ERR_INVALID_ARG, err, TAG, "Invalid row argument");
+
+    ESP_GOTO_ON_ERROR(
+        lcd_write_byte(LCD_SET_DDRAM_ADDR | (column + row_offsets[row]), LCD_COMMAND),
+        err, TAG, "Error with lcd_set_cursor()"
+    );
+    ets_delay_us(40); // 37us execution time for Set DDRAM address
+    handle->cursor_column = column;
+    handle->cursor_row = row;
+    return ESP_OK;
+err:
+    ESP_LOGE(TAG, "lcd_set_cursor:%s", esp_err_to_name(ret));
+    return ret;
 }
 
 void lcd_setCursor(uint8_t col, uint8_t row)
 {
     if (row > lcd_rows - 1)
     {
-        ESP_LOGE(TAG, "Cannot write to row %d. Please select a row in the range (0, %d)", row, lcd_rows - 1);
+        ESP_LOGW(TAG, "Cannot write to row %d. Please select a row in the range (0, %d)", row, lcd_rows - 1);
         row = lcd_rows - 1;
     }
     uint8_t row_offsets[] = {LCD_LINEONE, LCD_LINETWO, LCD_LINETHREE, LCD_LINEFOUR};
     lcd_write_byte(LCD_SET_DDRAM_ADDR | (col + row_offsets[row]), LCD_COMMAND);
 }
 
-void lcd_clearScreen(void)
+esp_err_t lcd_clear_screen(lcd_handle_t *handle)
 {
-    lcd_write_byte(LCD_CLEAR, LCD_COMMAND);
-    vTaskDelay(2 / portTICK_PERIOD_MS); // This command takes a while to complete
+    esp_err_t ret = ESP_OK;
+
+    ESP_GOTO_ON_FALSE(handle, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
+
+    ESP_GOTO_ON_ERROR(
+        lcd_write_byte(LCD_CLEAR, LCD_COMMAND),
+        err, TAG, "Error with lcd_write_byte()"
+    );
+    handle->cursor_row = 0;
+    handle->cursor_column = 0;
+
+    return ESP_OK;
+err:
+    ESP_LOGE(TAG, "lcd_clear_screen:%s", esp_err_to_name(ret));
+    return ret;
 }
 
 // Turn the display on/off (quickly)
@@ -195,7 +295,7 @@ void lcd_display(void)
     displayControl |= LCD_DISPLAY_ON;
     lcd_write_byte(LCD_DISPLAY_CONTROL | displayControl, LCD_COMMAND);
 }
-
+/*
 // Turns the underline cursor on/off
 void lcd_noCursor(void)
 {
@@ -270,6 +370,7 @@ void lcd_createChar(uint8_t location, uint8_t charmap[])
         lcd_write_byte(charmap[i], Rs);
     }
 }
+*/
 
 void lcd_backlight(void)
 {
@@ -385,7 +486,9 @@ err:
 */
 static esp_err_t lcd_i2c_detect(i2c_port_t port, uint8_t address)
 {
-    esp_err_t ret = lcd_i2c_write(port, address, 0);
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_i2c_write(port, address, 0);
     switch (ret)
     {
     case ESP_OK:

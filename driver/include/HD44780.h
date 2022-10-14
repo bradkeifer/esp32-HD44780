@@ -35,10 +35,12 @@ extern "C" {
 #define LCD_NO_BACKLIGHT 0x00
 
 // flags for display entry mode
-#define LCD_ENTRY_RIGHT 0x00
-#define LCD_ENTRY_LEFT 0x02
-#define LCD_ENTRY_SHIFT_INCREMENT 0x01
-#define LCD_ENTRY_SHIFT_DECREMENT 0x00
+// Refer Table 6 of datasheet for details
+
+#define LCD_ENTRY_DECREMENT         0x00 /*!< Decrements DDRAM and shifts cursor left*/
+#define LCD_ENTRY_INCREMENT         0x02 /*!< Increments DDRAM and shifts cursor right*/
+#define LCD_ENTRY_DISPLAY_SHIFT     0x01 /*!< Shifts entire display. Right if decrement. Left if increment*/
+#define LCD_ENTRY_DISPLAY_NO_SHIFT  0x00 /*!< Display does not shift*/
 
 /**
  * @brief LCD handle structure
@@ -85,16 +87,56 @@ esp_err_t lcd_probe(lcd_handle_t *handle);
 /**
  * @brief Move the cursor to the home position
  *
+ * @details This is a relatively slow function, taking 1.52ms with a
+ *          270kHz clock. Please use lcd_clear_screen() as a faster
+ *          alternative if possible.
+ *
  * @param[inout] handle LCD handle. Cursor position details are updated
  *
- * @return TBD - needs to use ESP_ERR in the long run
+ * @return  - ESP_OK     Success
+ *          - ESP error code propagated from error source
 */
-void lcd_home(lcd_handle_t *handle);
+esp_err_t lcd_home(lcd_handle_t *handle);
 
-void lcd_writeChar(char c);
-void lcd_writeStr(char* str);
-void lcd_setCursor(uint8_t col, uint8_t row);
-void lcd_clearScreen(void);
+/**
+ * @brief Write a character to the LCD
+ *
+ * @param[inout] handle LCD handle. Cursor position details are updated
+ *
+ * @return  - ESP_OK     Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_write_char(lcd_handle_t *handle, char c);
+
+void lcd_writeStr(lcd_handle_t *handle, char* str);
+
+/**
+ * @brief Move the cursor to a specified row and column
+ *
+ * @param[inout] handle LCD handle. Cursor position details are updated.
+ *
+ * @return  - ESP_OK     Success
+ *          - ESP_ERR_INVALID_ARG   Invalid parameter
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_set_cursor(lcd_handle_t *handle, uint8_t col, uint8_t row);
+
+void lcd_setCursor(uint8_t column, uint8_t row); // to be deprecated
+
+/**
+ * @brief Clear the display. Cursor row and column reset to 0.
+ *
+ * @details This function is very fast to execute and should be used
+ *          instead of it's sibling function lcd_home(), which is much
+ *          slower. Refer Table 6 of HD44780U datasheet for details.
+ *
+ * @param[inout] handle LCD. Cursor position details are updated
+ *
+ * @return  - ESP_OK    Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_clear_screen(lcd_handle_t *handle);
+
 void lcd_noDisplay(void);
 void lcd_display(void);
 void lcd_noCursor(void);

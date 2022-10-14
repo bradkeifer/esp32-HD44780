@@ -86,41 +86,41 @@ static void initialise(void)
 static void lcd_demo(void)
 {
     char num[20];
-    char c = '!';
+    char c = '!'; // first ascii char
 
     ESP_ERROR_CHECK(lcd_probe(&lcd_handle));
-    ESP_LOGD(TAG, "Turn backlight on");
+    ESP_LOGI(TAG, "Turn backlight on");
     lcd_setBackLight(1);
-    ESP_LOGD(TAG, "Move cursor home");
-    lcd_home(&lcd_handle);
-    ESP_LOGD(TAG, "Clear screen");
-    lcd_clearScreen();
-    ESP_LOGD(TAG, "Write string:20x4 I2C LCD");
-    lcd_writeStr("20x4 I2C LCD");
+    ESP_LOGI(TAG, "Clear screen");
+    lcd_clear_screen(&lcd_handle);
+    ESP_LOGI(TAG, "Write string:20x4 I2C LCD");
+    lcd_writeStr(&lcd_handle, "20x4 I2C LCD");
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    ESP_LOGD(TAG, "Clear screen");
-    lcd_clearScreen();
-    ESP_LOGD(TAG, "Write string:Lets Count 0-10!");
-    lcd_writeStr("Lets write some characters!");
+    ESP_LOGI(TAG, "Clear screen");
+    lcd_clear_screen(&lcd_handle);
+    ESP_LOGI(TAG, "Write string:Lets write some characters!");
+    lcd_writeStr(&lcd_handle, "Lets write some characters!");
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    ESP_LOGD(TAG, "Clear screen");
-    lcd_clearScreen();
+    ESP_LOGI(TAG, "Clear screen");
+    lcd_clear_screen(&lcd_handle);
     for (int row = 0; row < LCD_ROWS; row++)
     {
         for (int column = 0; column < LCD_COLUMNS; column++)
         {
-            ESP_LOGD(TAG, "Set cursor on column %d, row %d", column, row);
-            lcd_setCursor(column, row);
+            ESP_LOGI(TAG, "Set cursor on column %d, row %d", column, row);
+            lcd_set_cursor(&lcd_handle, column, row);
             sprintf(num, "%c", c);
-            ESP_LOGD(TAG, "Write character:%c", c);
-            lcd_writeChar(c);
+            ESP_LOGI(TAG, "Write character:%c", c);
+            lcd_write_char(&lcd_handle, c);
             c++;
             vTaskDelay(5 / portTICK_PERIOD_MS);
         }
+        ESP_LOGI(TAG, "Finished row %d", row);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    ESP_LOGD(TAG, "Turn backlight off");
-    lcd_setBackLight(0);
+//    ESP_LOGI(TAG, "Turn backlight off");
+//    lcd_setBackLight(0); - This is causing display to use different character set
 
-    ESP_LOGD(TAG, "lcd_Demo finished");
+    ESP_LOGI(TAG, "lcd_Demo finished");
 }
