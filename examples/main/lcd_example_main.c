@@ -12,23 +12,23 @@
 #define I2C_MASTER_SCL_IO CONFIG_SCL_GPIO
 
 #ifdef CONFIG_HARDWARE_I2C_PORT0
-    #define I2C_MASTER_NUM I2C_NUM_0 /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
+#define I2C_MASTER_NUM I2C_NUM_0 /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
 #endif
 
 #ifdef CONFIG_HARDWARE_I2C_PORT1
-    #define I2C_MASTER_NUM I2C_NUM_1 /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
+#define I2C_MASTER_NUM I2C_NUM_1 /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
 #endif
 
-#define I2C_MASTER_FREQ_HZ CONFIG_I2C_CLK_FREQ   /*!< I2C master clock frequency */
+#define I2C_MASTER_FREQ_HZ CONFIG_I2C_CLK_FREQ /*!< I2C master clock frequency */
 
 #define LCD_ADDR CONFIG_LCD_ADDR /*!< Address of the display on the i2c bus */
 #define LCD_ROWS CONFIG_LCD_ROWS
 #define LCD_COLUMNS CONFIG_LCD_COLUMNS
 #ifdef CONFIG_LCD_BACKLIGHT_ON
-    #define LCD_BACKLIGHT LCD_BACKLIGHT_ON
+#define LCD_BACKLIGHT LCD_BACKLIGHT_ON
 #endif
 #ifdef CONFIG_LCD_BACKLIGHT_OFF
-    #define LCD_BACKLIGHT LCD_BACKLIGHT_OFF
+#define LCD_BACKLIGHT LCD_BACKLIGHT_OFF
 #endif
 
 static const char *TAG = "lcd_example";
@@ -68,10 +68,10 @@ static void initialise(void)
     ESP_LOGD(TAG, "Installing i2c driver in master mode on channel %d", I2C_MASTER_NUM);
     ESP_ERROR_CHECK(i2c_driver_install(I2C_MASTER_NUM, I2C_MODE_MASTER, 0, 0, 0));
     ESP_LOGD(TAG,
-        "Configuring i2c parameters.\n\tMode: %d\n\tSDA pin:%d\n\tSCL pin:%d\n\tSDA pullup:%d\n\tSCL pullup:%d\n\tClock speed:%.3fkHz",
-        i2c_config.mode, i2c_config.sda_io_num, i2c_config.scl_io_num,
-        i2c_config.sda_pullup_en, i2c_config.scl_pullup_en,
-        i2c_config.master.clk_speed / 1000.0);
+             "Configuring i2c parameters.\n\tMode: %d\n\tSDA pin:%d\n\tSCL pin:%d\n\tSDA pullup:%d\n\tSCL pullup:%d\n\tClock speed:%.3fkHz",
+             i2c_config.mode, i2c_config.sda_io_num, i2c_config.scl_io_num,
+             i2c_config.sda_pullup_en, i2c_config.scl_pullup_en,
+             i2c_config.master.clk_speed / 1000.0);
     ESP_ERROR_CHECK(i2c_param_config(I2C_MASTER_NUM, &i2c_config));
 
     // Modify default lcd_handle details
@@ -121,11 +121,21 @@ static void lcd_demo(void)
             vTaskDelay(5 / portTICK_PERIOD_MS);
         }
         ESP_LOGI(TAG, "Finished row %d", row);
+        if (row % 2)
+        {
+            ESP_LOGI(TAG, "Turn cursor on");
+            lcd_cursor(&lcd_handle);
+        }
+        else
+        {
+            ESP_LOGI(TAG, "Turn cursor off");
+            lcd_no_cursor(&lcd_handle);
+        }
         vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-//    ESP_LOGI(TAG, "Turn backlight off");
-//    lcd_setBackLight(0); - This is causing display to use different character set
+    //    ESP_LOGI(TAG, "Turn backlight off");
+    //    lcd_setBackLight(0); - This is causing display to use different character set
 
     ESP_LOGI(TAG, "lcd_Demo finished");
 }

@@ -171,7 +171,7 @@ esp_err_t lcd_clear_screen(lcd_handle_t *handle);
 /**
  * @brief Turn the display off
  * *
- * @param[inout] handle LCD. Display control  details are updated
+ * @param[inout] handle LCD. Display control details are updated
  *
  * @return  - ESP_OK    Success
  *          - ESP error code propagated from error source
@@ -181,15 +181,33 @@ esp_err_t lcd_no_display(lcd_handle_t *handle);
 /**
  * @brief Turn the display on
  * *
- * @param[inout] handle LCD. Display control  details are updated
+ * @param[inout] handle LCD. Display control details are updated
  *
  * @return  - ESP_OK    Success
  *          - ESP error code propagated from error source
 */
 esp_err_t lcd_display(lcd_handle_t *handle);
 
-void lcd_noCursor(void);
-void lcd_cursor(void);
+/**
+ * @brief Turn the cursor off
+ * *
+ * @param[inout] handle LCD. Display control details are updated
+ *
+ * @return  - ESP_OK    Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_no_cursor(lcd_handle_t *handle);
+
+/**
+ * @brief Turn the cursor on
+ * *
+ * @param[inout] handle LCD. Display control details are updated
+ *
+ * @return  - ESP_OK    Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_cursor(lcd_handle_t *handle);
+
 void lcd_noBlink(void);
 void lcd_blink(void);
 void lcd_scrollDisplayLeft(void);

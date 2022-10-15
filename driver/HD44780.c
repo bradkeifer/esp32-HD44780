@@ -315,19 +315,38 @@ err:
     ESP_LOGE(TAG, "lcd_display:%s", esp_err_to_name(ret));
     return ret;
 }
-/*
-// Turns the underline cursor on/off
-void lcd_noCursor(void)
-{
-    displayControl &= ~LCD_CURSOR_ON;
-    lcd_write_byte(LCD_DISPLAY_CONTROL | displayControl, LCD_COMMAND);
-}
-void lcd_cursor(void)
-{
-    displayControl |= LCD_CURSOR_ON;
-    lcd_write_byte(LCD_DISPLAY_CONTROL | displayControl, LCD_COMMAND);
-}
 
+esp_err_t lcd_no_cursor(lcd_handle_t *handle)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_write_byte(handle,
+        LCD_DISPLAY_CONTROL | (handle->display_control & ~LCD_CURSOR_ON),
+        LCD_COMMAND);
+    if (ret != ESP_OK) goto err;
+    handle->display_control &= ~LCD_CURSOR_ON;
+
+    return ESP_OK;
+err:
+    ESP_LOGE(TAG, "lcd_no_cursor:%s", esp_err_to_name(ret));
+    return ret;
+}
+esp_err_t lcd_cursor(lcd_handle_t *handle)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_write_byte(handle,
+        LCD_DISPLAY_CONTROL | (handle->display_control | LCD_CURSOR_ON),
+        LCD_COMMAND);
+    if (ret != ESP_OK) goto err;
+    handle->display_control |= LCD_CURSOR_ON;
+
+    return ESP_OK;
+err:
+    ESP_LOGE(TAG, "lcd_no_cursor:%s", esp_err_to_name(ret));
+    return ret;
+}
+/*
 // Turn on and off the blinking cursor
 void lcd_noBlink(void)
 {
