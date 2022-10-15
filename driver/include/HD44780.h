@@ -30,17 +30,34 @@ extern "C" {
 #define LCD_5x10DOTS 0x04
 #define LCD_5x8DOTS 0x00
 
-// flags for backlight control
-#define LCD_BACKLIGHT 0x08
-#define LCD_NO_BACKLIGHT 0x00
+// flags for backlight control - move to private include
+#define LCD_BACKLIGHT_CONTROL_ON 0x08
+#define LCD_BACKLIGHT_CONTROL_OFF 0x00
+
+// flags for backlight state
+#define LCD_BACKLIGHT_ON 1      /*!< Backlight on state */
+#define LCD_BACKLIGHT_OFF 0     /*!< Backlight off state */
 
 // flags for display entry mode
 // Refer Table 6 of datasheet for details
-
 #define LCD_ENTRY_DECREMENT         0x00 /*!< Decrements DDRAM and shifts cursor left*/
 #define LCD_ENTRY_INCREMENT         0x02 /*!< Increments DDRAM and shifts cursor right*/
 #define LCD_ENTRY_DISPLAY_SHIFT     0x01 /*!< Shifts entire display. Right if decrement. Left if increment*/
 #define LCD_ENTRY_DISPLAY_NO_SHIFT  0x00 /*!< Display does not shift*/
+
+#define LCD_HANDLE_DEFAULT_CONFIG() {                                   \
+    .i2c_port = I2C_NUM_0,                                              \
+    .address = 0x3f,                                                    \
+    .columns = 20,                                                      \
+    .rows = 4,                                                          \
+    .display_function = LCD_4BIT_MODE | LCD_2LINE | LCD_5x8DOTS,        \
+    .display_control = LCD_DISPLAY_ON | LCD_CURSOR_OFF | LCD_BLINK_OFF, \
+    .display_mode = LCD_ENTRY_INCREMENT | LCD_ENTRY_DISPLAY_NO_SHIFT,   \
+    .cursor_column = 0,                                                 \
+    .cursor_row = 0,                                                    \
+    .backlight = LCD_BACKLIGHT_ON,                                      \
+    .initialized = false,                                               \
+}
 
 /**
  * @brief LCD handle structure
@@ -56,6 +73,7 @@ typedef struct {
     uint8_t cursor_column;      /*!< Current column position of cursor */
     uint8_t cursor_row;         /*!< Current row position of cursor */
     uint8_t backlight;          /*!< Current state of backlight */
+    bool initialized;           /*!< Private flag to reflect initialization state */
 
 } lcd_handle_t;
 
@@ -104,11 +122,26 @@ esp_err_t lcd_home(lcd_handle_t *handle);
  * @param[inout] handle LCD handle. Cursor position details are updated
  *
  * @return  - ESP_OK     Success
+ *          - ESP_ERR_INVALID_SIZE Write would cause screen display overflow
  *          - ESP error code propagated from error source
 */
 esp_err_t lcd_write_char(lcd_handle_t *handle, char c);
 
-void lcd_writeStr(lcd_handle_t *handle, char* str);
+/**
+ * @brief Write a string to the LCD
+ *
+ * @param[inout] handle LCD handle. Cursor position details are updated
+ *
+ * @details Characters in the string are written to the LCD one character at a time.
+ *          If the character string is too long for the LCD, only the characters that
+ *          will fit on the display will be written and ESP_ERR_INVALID_SIZE error will
+ *          be returned
+ *
+ * @return  - ESP_OK     Success
+ *          - ESP_ERR_INVALID_SIZE Write would cause screen display overflow
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_write_str(lcd_handle_t *handle, char* str);
 
 /**
  * @brief Move the cursor to a specified row and column
@@ -120,8 +153,6 @@ void lcd_writeStr(lcd_handle_t *handle, char* str);
  *          - ESP error code propagated from error source
 */
 esp_err_t lcd_set_cursor(lcd_handle_t *handle, uint8_t col, uint8_t row);
-
-void lcd_setCursor(uint8_t column, uint8_t row); // to be deprecated
 
 /**
  * @brief Clear the display. Cursor row and column reset to 0.
@@ -137,8 +168,26 @@ void lcd_setCursor(uint8_t column, uint8_t row); // to be deprecated
 */
 esp_err_t lcd_clear_screen(lcd_handle_t *handle);
 
-void lcd_noDisplay(void);
-void lcd_display(void);
+/**
+ * @brief Turn the display off
+ * *
+ * @param[inout] handle LCD. Display control  details are updated
+ *
+ * @return  - ESP_OK    Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_no_display(lcd_handle_t *handle);
+
+/**
+ * @brief Turn the display on
+ * *
+ * @param[inout] handle LCD. Display control  details are updated
+ *
+ * @return  - ESP_OK    Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_display(lcd_handle_t *handle);
+
 void lcd_noCursor(void);
 void lcd_cursor(void);
 void lcd_noBlink(void);

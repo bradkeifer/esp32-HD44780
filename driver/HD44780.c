@@ -79,59 +79,59 @@
 
 static const char *TAG = "LCD Driver";
 
-// TODO: To align with esp32 best practice, put these into a struct and
-// develop esp-idf standard initialisation pattern(s)
-static uint8_t lcd_addr;
-static uint8_t lcd_rows;
-static uint8_t displayControl;
-static uint8_t backlightVal;
-
 /**
  * @brief Transmit 4 bits of data to the LCD panel
  *
+ * @param[in] handle The LCD handle
  * @param[in] nibble The 4 bits of data to be sent.
  * @param[in] mode [** to be defined **]
-*/
-static esp_err_t lcd_write_nibble(uint8_t nibble, uint8_t mode);
-static esp_err_t lcd_write_byte(uint8_t data, uint8_t mode);
-static esp_err_t lcd_pulse_enable(uint8_t nibble);
+ */
+static esp_err_t lcd_write_nibble(lcd_handle_t *handle, uint8_t nibble, uint8_t mode);
+static esp_err_t lcd_write_byte(lcd_handle_t *handle, uint8_t data, uint8_t mode);
+static esp_err_t lcd_pulse_enable(lcd_handle_t *handle, uint8_t nibble);
 static esp_err_t lcd_i2c_detect(i2c_port_t port, uint8_t address);
 static esp_err_t lcd_i2c_write(i2c_port_t port, uint8_t address, uint8_t data);
 
 esp_err_t lcd_init(lcd_handle_t *handle)
 {
-    // to be deprecated!!
-    lcd_addr = handle->address;
 
-    // Initialise the LCD handle
-    if (handle->rows == 1)
-        handle->display_function = LCD_4BIT_MODE | LCD_1LINE | LCD_5x8DOTS;
-    else
-        handle->display_function = LCD_4BIT_MODE | LCD_2LINE | LCD_5x8DOTS;
-    handle->display_control = LCD_DISPLAY_ON | LCD_CURSOR_OFF | LCD_BLINK_OFF;
-    handle->display_mode = LCD_ENTRY_INCREMENT | LCD_ENTRY_DISPLAY_NO_SHIFT;
-    handle->cursor_column = 0;
-    handle->cursor_row = 0;
-    handle->backlight = LCD_BACKLIGHT;
+    ESP_LOGD(TAG,
+             "Initialising LCD with:\n\ti2c_port: %d\n\tAddress: 0x%0x\n\tColumns: %d\n\tRows: %d\n\tDisplay Function: 0x%0x\n\tDisplay Control: 0x%0x\n\tDisplay Mode: 0x%0x\n\tCursor Column: %d\n\tCursor Row: %d\n\tBacklight: %d\n\tInitialised: %d",
+             handle->i2c_port, handle->address, handle->columns, handle->rows,
+             handle->display_function, handle->display_control, handle->display_mode,
+             handle->cursor_column, handle->cursor_row, handle->backlight,
+             handle->initialized);
+
+    if (handle->display_function & LCD_8BIT_MODE)
+    {
+        ESP_LOGE(TAG, "8 bit mode not yet supported");
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (handle->initialized)
+    {
+        ESP_LOGE(TAG, "LCD already initialized");
+        return ESP_ERR_INVALID_STATE;
+    }
 
     // Initialise the LCD controller by instruction for 4-bit interface
-    lcd_write_nibble(LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND);   // First part of reset sequence
-    vTaskDelay(10 / portTICK_PERIOD_MS);                              // 4.1 mS delay (min)
-    lcd_write_nibble(LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND);   // second part of reset sequence
-    ets_delay_us(200);                                                // 100 uS delay (min)
-    lcd_write_nibble(LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND);   // Third time's a charm
-    lcd_write_nibble(LCD_FUNCTION_SET | LCD_4BIT_MODE, LCD_COMMAND); // Activate 4-bit mode
-    ets_delay_us(80);                                                 // 40 uS delay (min)
+    lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND); // First part of reset sequence
+    vTaskDelay(10 / portTICK_PERIOD_MS);                                     // 4.1 mS delay (min)
+    lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND); // second part of reset sequence
+    ets_delay_us(200);                                                       // 100 uS delay (min)
+    lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND); // Third time's a charm
+    lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_4BIT_MODE, LCD_COMMAND); // Activate 4-bit mode
+    ets_delay_us(80);                                                        // 40 uS delay (min)
 
     // --- Busy flag now available ---
     // Set Display Function: # line, font size, etc.
     // 37us max execution time with 270kHz clock
-    lcd_write_byte(LCD_FUNCTION_SET | handle->display_function, LCD_COMMAND); // Set mode, lines, and font
+    lcd_write_byte(handle, LCD_FUNCTION_SET | handle->display_function, LCD_COMMAND); // Set mode, lines, and font
     ets_delay_us(80);
 
     // turn the display on with no cursor or blinking default
     // 37us max execution time with 270kHz clock
-    lcd_display();
+    lcd_display(handle);
 
     // Clear Display instruction
     // Max execution time not specified
@@ -140,69 +140,73 @@ esp_err_t lcd_init(lcd_handle_t *handle)
     // Entry Mode Set instruction.
     // Sets cursor move direction and specifies display shift
     // 37us max execution time with 270kHz clock
-    lcd_write_byte(LCD_ENTRY_MODE_SET | handle->display_mode, LCD_COMMAND);
+    lcd_write_byte(handle, LCD_ENTRY_MODE_SET | handle->display_mode, LCD_COMMAND);
     ets_delay_us(80);
 
     lcd_home(handle);
+    handle->initialized = true;
 
     return ESP_OK;
-
 }
 
 esp_err_t lcd_write_char(lcd_handle_t *handle, char c)
 {
     esp_err_t ret = ESP_OK;
-    int8_t new_column = (int8_t) handle->cursor_column;
+    int8_t new_column = (int8_t)handle->cursor_column;
 
     ESP_GOTO_ON_FALSE(handle, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
     ESP_GOTO_ON_FALSE(c, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
 
     // Check for column overflow. Need to understand display behaviour and then
     // determine appropriate handling procedure
-    if (handle->display_mode && LCD_ENTRY_INCREMENT)
+    if (handle->display_mode & LCD_ENTRY_INCREMENT)
     {
-        if(++new_column > handle->columns)
+        if (++new_column > handle->columns)
         {
-            ESP_LOGW(TAG,
-                "lcd_write_char(): Column overflow. Current=%d, new=%d",
-                handle->cursor_column, new_column
-            );
+            ESP_LOGE(TAG,
+                     "lcd_write_char(): Column overflow. Current=%d, new=%d",
+                     handle->cursor_column, new_column);
+            return ESP_ERR_INVALID_SIZE;
         }
     }
-    else if (handle->display_mode && LCD_ENTRY_DECREMENT)
+    else if (handle->display_mode & LCD_ENTRY_DECREMENT)
     {
-        if(--new_column < 0)
+        if (--new_column < 0)
         {
-            ESP_LOGW(TAG,
-                "lcd_write_char(): Column underflow. Current=%d, new=%d",
-                handle->cursor_column, new_column
-            );
-            new_column = 0; // prevent actual underflow
+            ESP_LOGE(TAG,
+                     "lcd_write_char(): Column underflow. Current=%d, new=%d",
+                     handle->cursor_column, new_column);
+            return ESP_ERR_INVALID_SIZE;
         }
     }
 
     // Write data to DDRAM
     ESP_GOTO_ON_ERROR(
-        lcd_write_byte(c, LCD_WRITE),
-        err, TAG, "Error with lcd_write_byte()"
-    );
+        lcd_write_byte(handle, c, LCD_WRITE),
+        err, TAG, "Error with lcd_write_byte()");
 
     // Update the cursor position details in the LCD handle
-    ESP_LOGD(TAG,"lcd_write_char:Current column=%d, new column=%d",
-        handle->cursor_column, new_column
-    );
-    handle->cursor_column = (uint8_t) new_column;
+    ESP_LOGD(TAG, "lcd_write_char:Current column=%d, new column=%d",
+             handle->cursor_column, new_column);
+    handle->cursor_column = (uint8_t)new_column;
     return ret;
 err:
     return ret;
 }
 
-void lcd_writeStr(lcd_handle_t *handle, char *str)
+esp_err_t lcd_write_str(lcd_handle_t *handle, char *str)
 {
+    esp_err_t ret = ESP_OK;
+
     while (*str)
     {
-        lcd_write_char(handle, *str++);
+        ESP_GOTO_ON_ERROR(
+            lcd_write_char(handle, *str++),
+        err, TAG, "Error with lcd_write_char()");
     }
+    return ret;
+err:
+    return ret;
 }
 
 esp_err_t lcd_home(lcd_handle_t *handle)
@@ -212,9 +216,8 @@ esp_err_t lcd_home(lcd_handle_t *handle)
     ESP_GOTO_ON_FALSE(handle, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
 
     ESP_GOTO_ON_ERROR(
-        lcd_write_byte(LCD_HOME, LCD_COMMAND),
-        err, TAG, "Error with lcd_write_byte()"
-    );
+        lcd_write_byte(handle, LCD_HOME, LCD_COMMAND),
+        err, TAG, "Error with lcd_write_byte()");
 
     handle->cursor_row = 0;
     handle->cursor_column = 0;
@@ -241,9 +244,8 @@ esp_err_t lcd_set_cursor(lcd_handle_t *handle, uint8_t column, uint8_t row)
     ESP_GOTO_ON_FALSE(valid_arg, ESP_ERR_INVALID_ARG, err, TAG, "Invalid row argument");
 
     ESP_GOTO_ON_ERROR(
-        lcd_write_byte(LCD_SET_DDRAM_ADDR | (column + row_offsets[row]), LCD_COMMAND),
-        err, TAG, "Error with lcd_set_cursor()"
-    );
+        lcd_write_byte(handle, LCD_SET_DDRAM_ADDR | (column + row_offsets[row]), LCD_COMMAND),
+        err, TAG, "Error with lcd_set_cursor()");
     ets_delay_us(40); // 37us execution time for Set DDRAM address
     handle->cursor_column = column;
     handle->cursor_row = row;
@@ -253,15 +255,15 @@ err:
     return ret;
 }
 
-void lcd_setCursor(uint8_t col, uint8_t row)
+void lcd_setCursor(lcd_handle_t *handle, uint8_t col, uint8_t row)
 {
-    if (row > lcd_rows - 1)
+    if (row > handle->rows - 1)
     {
-        ESP_LOGW(TAG, "Cannot write to row %d. Please select a row in the range (0, %d)", row, lcd_rows - 1);
-        row = lcd_rows - 1;
+        ESP_LOGW(TAG, "Cannot write to row %d. Please select a row in the range (0, %d)", row, handle->rows - 1);
+        row = handle->rows - 1;
     }
     uint8_t row_offsets[] = {LCD_LINEONE, LCD_LINETWO, LCD_LINETHREE, LCD_LINEFOUR};
-    lcd_write_byte(LCD_SET_DDRAM_ADDR | (col + row_offsets[row]), LCD_COMMAND);
+    lcd_write_byte(handle, LCD_SET_DDRAM_ADDR | (col + row_offsets[row]), LCD_COMMAND);
 }
 
 esp_err_t lcd_clear_screen(lcd_handle_t *handle)
@@ -271,9 +273,8 @@ esp_err_t lcd_clear_screen(lcd_handle_t *handle)
     ESP_GOTO_ON_FALSE(handle, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
 
     ESP_GOTO_ON_ERROR(
-        lcd_write_byte(LCD_CLEAR, LCD_COMMAND),
-        err, TAG, "Error with lcd_write_byte()"
-    );
+        lcd_write_byte(handle, LCD_CLEAR, LCD_COMMAND),
+        err, TAG, "Error with lcd_write_byte()");
     handle->cursor_row = 0;
     handle->cursor_column = 0;
 
@@ -283,17 +284,36 @@ err:
     return ret;
 }
 
-// Turn the display on/off (quickly)
-void lcd_noDisplay(void)
+esp_err_t lcd_no_display(lcd_handle_t *handle)
 {
-    displayControl &= ~LCD_DISPLAY_ON;
-    lcd_write_byte(LCD_DISPLAY_CONTROL | displayControl, LCD_COMMAND);
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_write_byte(handle,
+            LCD_DISPLAY_CONTROL | (handle->display_control & ~LCD_DISPLAY_ON),
+            LCD_COMMAND);
+    if (ret != ESP_OK) goto err;
+    handle->display_control &= ~LCD_DISPLAY_ON;
+
+    return ESP_OK;
+err:
+    ESP_LOGE(TAG, "lcd_no_display:%s", esp_err_to_name(ret));
+    return ret;
 }
 
-void lcd_display(void)
+esp_err_t lcd_display(lcd_handle_t *handle)
 {
-    displayControl |= LCD_DISPLAY_ON;
-    lcd_write_byte(LCD_DISPLAY_CONTROL | displayControl, LCD_COMMAND);
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_write_byte(handle,
+            LCD_DISPLAY_CONTROL | (handle->display_control | LCD_DISPLAY_ON),
+            LCD_COMMAND);
+    if (ret != ESP_OK) goto err;
+    handle->display_control |= LCD_DISPLAY_ON;
+
+    return ESP_OK;
+err:
+    ESP_LOGE(TAG, "lcd_display:%s", esp_err_to_name(ret));
+    return ret;
 }
 /*
 // Turns the underline cursor on/off
@@ -372,15 +392,17 @@ void lcd_createChar(uint8_t location, uint8_t charmap[])
 }
 */
 
+// problems with these backlight functions at the moment.
+/*
 void lcd_backlight(void)
 {
-    backlightVal = LCD_BACKLIGHT;
+    backlightVal = LCD_BACKLIGHT_CONTROL_ON;
     lcd_write_byte(0x00, LCD_COMMAND);
 }
 
 void lcd_noBacklight(void)
 {
-    backlightVal = LCD_NO_BACKLIGHT;
+    backlightVal = LCD_BACKLIGHT_CONTROL_OFF;
     lcd_write_byte(0x00, LCD_COMMAND);
 }
 
@@ -391,30 +413,38 @@ void lcd_setBackLight(uint8_t new_val)
     else
         lcd_noBacklight(); // turn backlight off
 }
+*/
 
 /************ low level data pushing commands **********/
 
-static esp_err_t lcd_write_nibble(uint8_t nibble, uint8_t mode)
+static esp_err_t lcd_write_nibble(lcd_handle_t *handle, uint8_t nibble, uint8_t mode)
 {
-    esp_err_t ret;
-    uint8_t data = (nibble & 0xF0) | mode | backlightVal;
+    esp_err_t ret = ESP_OK;
+    uint8_t data = 0;
+
+    if (handle->backlight)
+    {
+        data = (nibble & 0xF0) | mode | LCD_BACKLIGHT_CONTROL_ON;
+    }
+    else
+    {
+        data = (nibble & 0xF0) | mode | LCD_BACKLIGHT_CONTROL_OFF;
+    }
 
     ESP_GOTO_ON_ERROR(
-        lcd_i2c_write(I2C_MASTER_NUM, lcd_addr, data),
-        err, TAG, "Error with lcd_i2c_write()"
-    );
+        lcd_i2c_write(I2C_MASTER_NUM, handle->address, data),
+        err, TAG, "Error with lcd_i2c_write()");
 
     ets_delay_us(LCD_PRE_PULSE_DELAY_US); // Need a decent delay here, else display won't work
 
     ESP_LOGD(TAG,
              "lcd_write_nibble: Wrote nibble 0x%x, with mode 0x%x as data 0x%x to i2c address 0x%x",
-             nibble, mode, data, lcd_addr);
+             nibble, mode, data, handle->address);
 
     // Clock the data into the LCD
     ESP_GOTO_ON_ERROR(
-        lcd_pulse_enable(data),
-        err, TAG, "Error with lcd_pulse_enable()"
-    );
+        lcd_pulse_enable(handle, data),
+        err, TAG, "Error with lcd_pulse_enable()");
 
     return ESP_OK;
 err:
@@ -422,19 +452,17 @@ err:
     return ret;
 }
 
-static esp_err_t lcd_write_byte(uint8_t data, uint8_t mode)
+static esp_err_t lcd_write_byte(lcd_handle_t *handle, uint8_t data, uint8_t mode)
 {
     esp_err_t ret;
 
     ESP_GOTO_ON_ERROR(
-        lcd_write_nibble(data & 0xF0, mode),
-        err, TAG, "Error with lcd_write_nibble()"
-    );
+        lcd_write_nibble(handle, data & 0xF0, mode),
+        err, TAG, "Error with lcd_write_nibble()");
 
     ESP_GOTO_ON_ERROR(
-        lcd_write_nibble((data << 4) & 0xF0, mode),
-        err, TAG, "Error with lcd_write_nibble()"
-    );
+        lcd_write_nibble(handle, (data << 4) & 0xF0, mode),
+        err, TAG, "Error with lcd_write_nibble()");
 
     return ESP_OK;
 err:
@@ -442,19 +470,17 @@ err:
     return ret;
 }
 
-static esp_err_t lcd_pulse_enable(uint8_t data)
+static esp_err_t lcd_pulse_enable(lcd_handle_t *handle, uint8_t data)
 {
     esp_err_t ret = ESP_OK;
 
     ESP_GOTO_ON_ERROR(
-        lcd_i2c_write(I2C_MASTER_NUM, lcd_addr, data | LCD_ENABLE),
-        err, TAG, "Error with lcd_i2c_write()"
-    );
+        lcd_i2c_write(I2C_MASTER_NUM, handle->address, data | LCD_ENABLE),
+        err, TAG, "Error with lcd_i2c_write()");
     ets_delay_us(1); // enable pulse must be >450ns
     ESP_GOTO_ON_ERROR(
-        lcd_i2c_write(I2C_MASTER_NUM, lcd_addr, data & ~LCD_ENABLE),
-        err, TAG, "Error with lcd_i2c_write()"
-    );
+        lcd_i2c_write(I2C_MASTER_NUM, handle->address, data & ~LCD_ENABLE),
+        err, TAG, "Error with lcd_i2c_write()");
     ets_delay_us(50); // commands need > 37us to settle
     return ESP_OK;
 err:
@@ -483,7 +509,7 @@ err:
  *          - ESP_ERR_INVALID_ARG   Parameter error
  *          - ESP_ERR_INVALID_STATE I2C driver not installed or not in master mode
  *          - ESP_ERR_TIMEOUT       Operation timeout because the bus is busy
-*/
+ */
 static esp_err_t lcd_i2c_detect(i2c_port_t port, uint8_t address)
 {
     esp_err_t ret = ESP_OK;
@@ -513,31 +539,26 @@ static esp_err_t lcd_i2c_write(i2c_port_t port, uint8_t address, uint8_t data)
 
     ESP_GOTO_ON_ERROR(
         i2c_master_start(cmd),
-        err, TAG, "Error with i2c_master_start()"
-    );
+        err, TAG, "Error with i2c_master_start()");
 
     ESP_GOTO_ON_ERROR(
         i2c_master_write_byte(cmd, (address << 1) | WRITE_BIT, ACK_CHECK_EN),
-        err, TAG, "Error with ic2_master_write_byte()"
-    );
+        err, TAG, "Error with ic2_master_write_byte()");
 
     if (data != 0)
     {
         ESP_GOTO_ON_ERROR(
             i2c_master_write_byte(cmd, data, ACK_CHECK_EN),
-            err, TAG, "Error with ic2_master_write_byte()"
-        );
+            err, TAG, "Error with ic2_master_write_byte()");
     }
 
     ESP_GOTO_ON_ERROR(
         i2c_master_stop(cmd),
-        err, TAG, "Error with i2c_master_stop()"
-    );
+        err, TAG, "Error with i2c_master_stop()");
 
     ESP_GOTO_ON_ERROR(
         i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_PERIOD_MS),
-        err, TAG, "Error with i2c_master_cmd_begin()"
-    );
+        err, TAG, "Error with i2c_master_cmd_begin()");
 
     i2c_cmd_link_delete(cmd);
 

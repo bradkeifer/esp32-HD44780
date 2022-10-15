@@ -24,19 +24,19 @@
 #define LCD_ADDR CONFIG_LCD_ADDR /*!< Address of the display on the i2c bus */
 #define LCD_ROWS CONFIG_LCD_ROWS
 #define LCD_COLUMNS CONFIG_LCD_COLUMNS
+#ifdef CONFIG_LCD_BACKLIGHT_ON
+    #define LCD_BACKLIGHT LCD_BACKLIGHT_ON
+#endif
+#ifdef CONFIG_LCD_BACKLIGHT_OFF
+    #define LCD_BACKLIGHT LCD_BACKLIGHT_OFF
+#endif
 
 static const char *TAG = "lcd_example";
 
 static void initialise(void);
 static void lcd_demo(void);
 
-lcd_handle_t lcd_handle = {
-    .i2c_port = I2C_MASTER_NUM,
-    .address = LCD_ADDR,
-    .columns = LCD_COLUMNS,
-    .rows = LCD_ROWS,
-    .backlight = LCD_BACKLIGHT,
-};
+lcd_handle_t lcd_handle = LCD_HANDLE_DEFAULT_CONFIG();
 
 void app_main(void)
 {
@@ -74,6 +74,13 @@ static void initialise(void)
         i2c_config.master.clk_speed / 1000.0);
     ESP_ERROR_CHECK(i2c_param_config(I2C_MASTER_NUM, &i2c_config));
 
+    // Modify default lcd_handle details
+    lcd_handle.i2c_port = I2C_MASTER_NUM;
+    lcd_handle.address = LCD_ADDR;
+    lcd_handle.columns = LCD_COLUMNS;
+    lcd_handle.rows = LCD_ROWS;
+    lcd_handle.backlight = LCD_BACKLIGHT;
+
     // Initialise LCD
     ESP_ERROR_CHECK(lcd_init(&lcd_handle));
 
@@ -89,17 +96,15 @@ static void lcd_demo(void)
     char c = '!'; // first ascii char
 
     ESP_ERROR_CHECK(lcd_probe(&lcd_handle));
-    ESP_LOGI(TAG, "Turn backlight on");
-    lcd_setBackLight(1);
     ESP_LOGI(TAG, "Clear screen");
     lcd_clear_screen(&lcd_handle);
     ESP_LOGI(TAG, "Write string:20x4 I2C LCD");
-    lcd_writeStr(&lcd_handle, "20x4 I2C LCD");
+    lcd_write_str(&lcd_handle, "20x4 I2C LCD");
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     ESP_LOGI(TAG, "Clear screen");
     lcd_clear_screen(&lcd_handle);
     ESP_LOGI(TAG, "Write string:Lets write some characters!");
-    lcd_writeStr(&lcd_handle, "Lets write some characters!");
+    lcd_write_str(&lcd_handle, "Lets write some characters!");
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     ESP_LOGI(TAG, "Clear screen");
     lcd_clear_screen(&lcd_handle);

@@ -63,4 +63,15 @@ menu "Example Configuration"
         help
             The number of columns in the display
 
+    choice LCD_BACKLIGHT
+        bool "Initalise LCD with backlight on or off"
+        default LCD_BACKLIGHT_ON
+
+        config LCD_BACKLIGHT_ON
+            bool "On"
+        config LCD_BACKLIGHT_OFF
+            bool "Off"
+
+    endchoice
+
 endmenu
