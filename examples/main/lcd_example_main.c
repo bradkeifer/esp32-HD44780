@@ -131,6 +131,16 @@ static void lcd_demo(void)
             ESP_LOGI(TAG, "Turn cursor off");
             lcd_no_cursor(&lcd_handle);
         }
+        if (row % 3)
+        {
+            ESP_LOGI(TAG, "Turn character blink at cursor position off");
+            lcd_no_blink(&lcd_handle);
+        }
+        else
+        {
+            ESP_LOGI(TAG, "Turn character blink at cursor position on");
+            lcd_blink(&lcd_handle);
+        }
         vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
     vTaskDelay(1000 / portTICK_PERIOD_MS);

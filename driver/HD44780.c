@@ -343,22 +343,42 @@ esp_err_t lcd_cursor(lcd_handle_t *handle)
 
     return ESP_OK;
 err:
-    ESP_LOGE(TAG, "lcd_no_cursor:%s", esp_err_to_name(ret));
+    ESP_LOGE(TAG, "lcd_cursor:%s", esp_err_to_name(ret));
+    return ret;
+}
+
+esp_err_t lcd_no_blink(lcd_handle_t *handle)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_write_byte(handle,
+        LCD_DISPLAY_CONTROL | (handle->display_control & ~LCD_BLINK_ON),
+        LCD_COMMAND);
+    if (ret != ESP_OK) goto err;
+    handle->display_control &= ~LCD_BLINK_ON;
+
+    return ESP_OK;
+err:
+    ESP_LOGE(TAG, "lcd_no_blink:%s", esp_err_to_name(ret));
+    return ret;
+}
+
+esp_err_t lcd_blink(lcd_handle_t *handle)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_write_byte(handle,
+        LCD_DISPLAY_CONTROL | (handle->display_control | LCD_BLINK_ON),
+        LCD_COMMAND);
+    if (ret != ESP_OK) goto err;
+    handle->display_control |= LCD_BLINK_ON;
+
+    return ESP_OK;
+err:
+    ESP_LOGE(TAG, "lcd_blink:%s", esp_err_to_name(ret));
     return ret;
 }
 /*
-// Turn on and off the blinking cursor
-void lcd_noBlink(void)
-{
-    displayControl &= ~LCD_BLINK_ON;
-    lcd_write_byte(LCD_DISPLAY_CONTROL | displayControl, LCD_COMMAND);
-}
-void lcd_blink(void)
-{
-    displayControl |= LCD_BLINK_ON;
-    lcd_write_byte(LCD_DISPLAY_CONTROL | displayControl, LCD_COMMAND);
-}
-
 // These commands scroll the display without changing the RAM
 void lcd_scrollDisplayLeft(void)
 {

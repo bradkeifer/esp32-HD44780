@@ -208,8 +208,26 @@ esp_err_t lcd_no_cursor(lcd_handle_t *handle);
 */
 esp_err_t lcd_cursor(lcd_handle_t *handle);
 
-void lcd_noBlink(void);
-void lcd_blink(void);
+/**
+ * @brief Turn character blink at cursor position off
+ * *
+ * @param[inout] handle LCD. Display control details are updated
+ *
+ * @return  - ESP_OK    Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_no_blink(lcd_handle_t *handle);
+
+/**
+ * @brief Turn character blink at cursor position on
+ * *
+ * @param[inout] handle LCD. Display control details are updated
+ *
+ * @return  - ESP_OK    Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_blink(lcd_handle_t *handle);
+
 void lcd_scrollDisplayLeft(void);
 void lcd_scrollDisplayRight(void);
 void lcd_leftToRight(void);
