@@ -3,8 +3,8 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := HD44780_example
+PROJECT_NAME := lcd_tools
 
-EXTRA_COMPONENT_DIRS := ../
+EXTRA_COMPONENT_DIRS = $(IDF_PATH)/examples/system/console/advanced/components ../../
 
 include $(IDF_PATH)/make/project.mk

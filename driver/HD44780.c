@@ -33,14 +33,14 @@
 #define Rs 0x01 // Register select bit
 
 // LCD instructions - refer Table 6 of Hitachi HD44780U datasheet
-#define LCD_CLEAR 0x01 // replace all characters with ASCII 'space'
-#define LCD_HOME 0x02  // return cursor to first position on first line
-#define LCD_ENTRY_MODE_SET 0x04
-#define LCD_DISPLAY_CONTROL 0x08
-#define LCD_CURSOR_SHIFT 0x10
-#define LCD_FUNCTION_SET 0x20
-#define LCD_SET_CGRAM_ADDR 0x40
-#define LCD_SET_DDRAM_ADDR 0x80
+#define LCD_CLEAR 0x01 /*!< Bitmask for "Clear display" instruction */
+#define LCD_HOME 0x02  /*!< Bitmask for "Return home" instruction NOTE: Slow execution time */
+#define LCD_ENTRY_MODE_SET 0x04 /*!< Bitmask for "Entry mode set" instruction */
+#define LCD_DISPLAY_CONTROL 0x08 /*!< Bitmask for "Display on/ff control" instruction */
+#define LCD_CURSOR_OR_DISPLAY_SHIFT 0x10 /*!< Bitmask for "Cursor or display shift" instruction */
+#define LCD_FUNCTION_SET 0x20 /*!< Bitmask for "Function set" instrution */
+#define LCD_SET_CGRAM_ADDR 0x40 /*<! Bitmask for "Set CGRAM address" instruction */
+#define LCD_SET_DDRAM_ADDR 0x80 /*!< Bitmask for "Set DDRAM address" instruction */
 
 // LCD Delay times
 #define LCD_PRE_PULSE_DELAY_US 1000
@@ -87,6 +87,37 @@ static const char *TAG = "LCD Driver";
  * @param[in] mode [** to be defined **]
  */
 static esp_err_t lcd_write_nibble(lcd_handle_t *handle, uint8_t nibble, uint8_t mode);
+
+/**
+ * @brief Manage incrementing the cursor column of the LCD handle
+ *
+ * @details The cursor sits one position ahead of the last character written and
+ *          this means that the cursor will overflow into a new row on a multi-row
+ *          display when the last charater is written into a row or if the display
+ *          is shifted
+ *
+ * @param[inout] handle The LCD handle. Cursor position details will be updated
+ *
+ * @returns - ESP_OK Success
+ *          - ESP_ERR_INVALID_ARG   Invalid paramater
+*/
+static esp_err_t lcd_handle_increment_cursor(lcd_handle_t *handle);
+
+/**
+ * @brief Manage decrementing the cursor column of the LCD handle
+ *
+ * @details The cursor sits one position ahead of the last character written and
+ *          this means that the cursor will overflow into a new row on a multi-row
+ *          display when the last charater is written into a row or if the display
+ *          is shifted
+ *
+ * @param[inout] handle The LCD handle. Cursor position details will be updated
+ *
+ * @returns - ESP_OK Success
+ *          - ESP_ERR_INVALID_ARG   Invalid paramater
+*/
+static esp_err_t lcd_handle_decrement_cursor(lcd_handle_t *handle);
+
 static esp_err_t lcd_write_byte(lcd_handle_t *handle, uint8_t data, uint8_t mode);
 static esp_err_t lcd_pulse_enable(lcd_handle_t *handle, uint8_t nibble);
 static esp_err_t lcd_i2c_detect(i2c_port_t port, uint8_t address);
@@ -152,12 +183,14 @@ esp_err_t lcd_init(lcd_handle_t *handle)
 esp_err_t lcd_write_char(lcd_handle_t *handle, char c)
 {
     esp_err_t ret = ESP_OK;
-    int8_t new_column = (int8_t)handle->cursor_column;
+//    int8_t new_column = (int8_t)handle->cursor_column;
 
     ESP_GOTO_ON_FALSE(handle, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
     ESP_GOTO_ON_FALSE(c, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
 
-    // Check for column overflow. Need to understand display behaviour and then
+/**
+ * No longer required now that we have the lcd_handle_[in,de]crement fucntions
+ *      // Check for column overflow. Need to understand display behaviour and then
     // determine appropriate handling procedure
     if (handle->display_mode & LCD_ENTRY_INCREMENT)
     {
@@ -169,7 +202,7 @@ esp_err_t lcd_write_char(lcd_handle_t *handle, char c)
             return ESP_ERR_INVALID_SIZE;
         }
     }
-    else if (handle->display_mode & LCD_ENTRY_DECREMENT)
+    else
     {
         if (--new_column < 0)
         {
@@ -179,16 +212,21 @@ esp_err_t lcd_write_char(lcd_handle_t *handle, char c)
             return ESP_ERR_INVALID_SIZE;
         }
     }
-
+ */
     // Write data to DDRAM
     ESP_GOTO_ON_ERROR(
         lcd_write_byte(handle, c, LCD_WRITE),
         err, TAG, "Error with lcd_write_byte()");
 
     // Update the cursor position details in the LCD handle
-    ESP_LOGD(TAG, "lcd_write_char:Current column=%d, new column=%d",
-             handle->cursor_column, new_column);
-    handle->cursor_column = (uint8_t)new_column;
+    if (handle->display_mode & LCD_ENTRY_INCREMENT)
+    {
+        lcd_handle_increment_cursor(handle);
+    }
+    else
+    {
+        lcd_handle_decrement_cursor(handle);
+    }
     return ret;
 err:
     return ret;
@@ -378,32 +416,69 @@ err:
     ESP_LOGE(TAG, "lcd_blink:%s", esp_err_to_name(ret));
     return ret;
 }
-/*
-// These commands scroll the display without changing the RAM
-void lcd_scrollDisplayLeft(void)
+
+esp_err_t lcd_display_shift_left(lcd_handle_t *handle)
 {
-    lcd_write_byte(LCD_CURSOR_SHIFT | LCD_DISPLAY_MOVE | LCD_MOVE_LEFT, LCD_COMMAND);
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_write_byte(handle,
+            LCD_CURSOR_OR_DISPLAY_SHIFT | LCD_DISPLAY_MOVE | LCD_MOVE_LEFT,
+            LCD_COMMAND);
+    if (ret != ESP_OK) goto err;
+    return lcd_handle_decrement_cursor(handle);
+err:
+    ESP_LOGE(TAG, "lcd_display_shift_left:%s", esp_err_to_name(ret));
+    return ret;
 }
 
-void lcd_scrollDisplayRight(void)
+esp_err_t lcd_display_shift_right(lcd_handle_t *handle)
 {
-    lcd_write_byte(LCD_CURSOR_SHIFT | LCD_DISPLAY_MOVE | LCD_MOVE_RIGHT, LCD_COMMAND);
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_write_byte(handle,
+            LCD_CURSOR_OR_DISPLAY_SHIFT | LCD_DISPLAY_MOVE | LCD_MOVE_RIGHT,
+            LCD_COMMAND);
+    if (ret != ESP_OK) goto err;
+    return lcd_handle_increment_cursor(handle);
+err:
+    ESP_LOGE(TAG, "lcd_display_shift_right:%s", esp_err_to_name(ret));
+    return ret;
 }
 
 // This is for text that flows Left to Right
-void lcd_leftToRight(void)
+esp_err_t lcd_left_to_right(lcd_handle_t *handle)
 {
-    displayMode |= LCD_ENTRY_LEFT;
-    lcd_write_byte(LCD_ENTRY_MODE_SET | displayMode, LCD_COMMAND);
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_write_byte(handle,
+        LCD_ENTRY_MODE_SET | (handle->display_mode | LCD_ENTRY_INCREMENT),
+        LCD_COMMAND);
+    if (ret != ESP_OK) goto err;
+    handle->display_mode |= LCD_ENTRY_INCREMENT;
+
+    return ESP_OK;
+err:
+    ESP_LOGE(TAG, "lcd_left_to_right:%s", esp_err_to_name(ret));
+    return ret;
 }
 
 // This is for text that flows Right to Left
-void lcd_rightToLeft(void)
+esp_err_t lcd_right_to_left(lcd_handle_t *handle)
 {
-    displayMode &= ~LCD_ENTRY_LEFT;
-    lcd_write_byte(LCD_ENTRY_MODE_SET | displayMode, LCD_COMMAND);
-}
+    esp_err_t ret = ESP_OK;
 
+    ret = lcd_write_byte(handle,
+        LCD_ENTRY_MODE_SET | (handle->display_mode & ~LCD_ENTRY_INCREMENT),
+        LCD_COMMAND);
+    if (ret != ESP_OK) goto err;
+    handle->display_mode &= ~LCD_ENTRY_INCREMENT;
+
+    return ESP_OK;
+err:
+    ESP_LOGE(TAG, "lcd_right_to_left:%s", esp_err_to_name(ret));
+    return ret;
+}
+/*
 // This will 'right justify' text from the cursor
 void lcd_Autoscroll(void)
 {
@@ -453,6 +528,68 @@ void lcd_setBackLight(uint8_t new_val)
         lcd_noBacklight(); // turn backlight off
 }
 */
+
+static esp_err_t lcd_handle_increment_cursor(lcd_handle_t *handle)
+{
+    esp_err_t ret = ESP_OK;
+
+    ESP_GOTO_ON_FALSE(handle, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
+    ESP_LOGD(TAG, "lcd_handle_increment_cursor from row %d, column %d",
+        handle->cursor_row, handle->cursor_column);
+    handle->cursor_column++;
+    if ((handle->rows > 1) && (handle->cursor_column == handle->columns))
+    {
+        // Cursor will have overflowed into a new row
+        handle->cursor_column = 0;
+        handle->cursor_row = (handle->cursor_row + 2) % handle->rows;
+    }
+    ESP_LOGD(TAG, "lcd_handle_increment_cursor to row %d, column %d",
+        handle->cursor_row, handle->cursor_column);
+
+    return ret;
+err:
+    ESP_LOGE(TAG, "lcd_handle_increment_cursor:%s", esp_err_to_name(ret));
+    return ret;
+}
+
+static esp_err_t lcd_handle_decrement_cursor(lcd_handle_t *handle)
+{
+    esp_err_t ret = ESP_OK;
+
+    ESP_GOTO_ON_FALSE(handle, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
+    ESP_LOGD(TAG, "lcd_handle_decrement_cursor from row %d, column %d",
+        handle->cursor_row, handle->cursor_column);
+    if (handle->cursor_column == 0)
+    {
+        // Cursor will have underflowed
+        if (handle->rows > 1)
+        {
+            handle->cursor_column = handle->columns;
+            handle->cursor_row = abs((handle->cursor_row - 2) % handle->rows);
+        }
+        else
+        {
+            /**
+             * Not sure - this has not been tested. I think it will go to maximum
+             * DDRAM address, but I don't know what that means for column to assign
+             */
+            ESP_LOGW(TAG,"lcd_handle_decrement_cursor: Untested scenario");
+            handle->cursor_column = handle->columns;
+        }
+    }
+    else
+    {
+        handle->cursor_column--;
+    }
+    ESP_LOGD(TAG, "lcd_handle_decrement_cursor to row %d, column %d",
+        handle->cursor_row, handle->cursor_column);
+
+    return ret;
+err:
+    ESP_LOGE(TAG, "lcd_handle_increment_cursor:%s", esp_err_to_name(ret));
+    return ret;
+}
+
 
 /************ low level data pushing commands **********/
 

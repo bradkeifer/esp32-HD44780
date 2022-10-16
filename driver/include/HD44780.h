@@ -46,7 +46,7 @@ extern "C" {
 #define LCD_ENTRY_DISPLAY_NO_SHIFT  0x00 /*!< Display does not shift*/
 
 #define LCD_HANDLE_DEFAULT_CONFIG() {                                   \
-    .i2c_port = I2C_NUM_0,                                              \
+    .i2c_port = I2C_MASTER_NUM,                                              \
     .address = 0x3f,                                                    \
     .columns = 20,                                                      \
     .rows = 4,                                                          \
@@ -228,10 +228,60 @@ esp_err_t lcd_no_blink(lcd_handle_t *handle);
 */
 esp_err_t lcd_blink(lcd_handle_t *handle);
 
-void lcd_scrollDisplayLeft(void);
-void lcd_scrollDisplayRight(void);
-void lcd_leftToRight(void);
-void lcd_rightToLeft(void);
+/**
+ * @brief Shifts the display to the left
+ *
+ * @details Shifts the display left without writing or reading display data.
+ *          This function is used to correct or search the display.
+ *          The address counter contents will not change.
+ *
+ * @param[in] handle LCD.
+ *
+ * @return  - ESP_OK    Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_display_shift_left(lcd_handle_t *handle);
+
+/**
+ * @brief Shifts the display to the right
+ *
+ * @details Shifts the display right without writing or reading display data.
+ *          This function is used to correct or search the display.
+ *          The address counter contents will not change.
+ *
+ * @param[in] handle LCD.
+ *
+ * @return  - ESP_OK    Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_display_shift_right(lcd_handle_t *handle);
+
+/**
+ * @brief Set text direction to be left to right
+ *
+ * @details Increments the DDRAM address by 1 when a character code is written
+ *          into or read from DDRAM
+ *
+ * @param[in] handle LCD. Display control details are updated
+ *
+ * @return  - ESP_OK    Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_left_to_right(lcd_handle_t *handle);
+
+/**
+ * @brief Set text direction to be right to left
+ *
+ * @details Decrements the DDRAM address by 1 when a character code is written
+ *          into or read from DDRAM
+ *
+ * @param[in] handle LCD. Display control details are updated
+ *
+ * @return  - ESP_OK    Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_right_to_left(lcd_handle_t *handle);
+
 void lcd_autoscroll(void);
 void lcd_noAutoscroll(void);
 void lcd_createChar(uint8_t location, uint8_t charmap[]);
