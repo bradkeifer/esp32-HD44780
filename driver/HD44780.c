@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include "driver/i2c.h"
-#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
 #include "esp_log.h"
 #include "esp_check.h"
 #include "freertos/FreeRTOS.h"
@@ -73,11 +72,10 @@
 //    S = 0; No shift
 //
 // Note, however, that resetting the esp32 doesn't reset the LCD, so we
-// can't assume that its in that state when task starts (and the
-// LiquidCrystal constructor is called).
+// can't assume that its in that state when task starts.
 //
 // Also note, that on power up the LCD internal reset circuitry remains in a
-// busy state for 10 ms after Vcc ries to 4.5V.
+// busy state for 10 ms after Vcc rises to 4.5V.
 
 static const char *TAG = "LCD Driver";
 
