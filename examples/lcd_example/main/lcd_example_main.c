@@ -106,6 +106,7 @@ static void lcd_demo(void)
     lcd_clear_screen(&lcd_handle);
     ESP_LOGI(TAG, "Write string:Lets write some characters!");
     lcd_write_str(&lcd_handle, "Lets write some characters!");
+    lcd_backlight(&lcd_handle);
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     ESP_LOGI(TAG, "Clear screen");
     lcd_clear_screen(&lcd_handle);
@@ -119,7 +120,7 @@ static void lcd_demo(void)
         while (lcd_handle.cursor_row == row)
         {
             sprintf(num, "%c", c);
-            ESP_LOGI(TAG, "Write character:%c", c);
+            //ESP_LOGI(TAG, "Write character:%c", c);
             lcd_write_char(&lcd_handle, c);
             c++;
 
@@ -138,7 +139,6 @@ static void lcd_demo(void)
             while (lcd_handle.cursor_column > 0)
                 {
                     sprintf(num, "%c", c);
-                    ESP_LOGI(TAG, "Write character:%c", c);
                     lcd_write_char(&lcd_handle, c);
                     c++;
                 }
@@ -151,27 +151,24 @@ static void lcd_demo(void)
                         lcd_handle.display_function, lcd_handle.display_control, lcd_handle.display_mode,
                         lcd_handle.cursor_column, lcd_handle.cursor_row, lcd_handle.backlight,
                         lcd_handle.initialized);
-                vTaskDelay(10000 / portTICK_PERIOD_MS);
             }
         }
         lr_test_done = false;
-        ESP_LOGI(TAG, "Finished row %d", row);
         ESP_LOGD(TAG,
                 "LCD handle:\n\ti2c_port: %d\n\tAddress: 0x%0x\n\tColumns: %d\n\tRows: %d\n\tDisplay Function: 0x%0x\n\tDisplay Control: 0x%0x\n\tDisplay Mode: 0x%0x\n\tCursor Column: %d\n\tCursor Row: %d\n\tBacklight: %d\n\tInitialised: %d",
                 lcd_handle.i2c_port, lcd_handle.address, lcd_handle.columns, lcd_handle.rows,
                 lcd_handle.display_function, lcd_handle.display_control, lcd_handle.display_mode,
                 lcd_handle.cursor_column, lcd_handle.cursor_row, lcd_handle.backlight,
                 lcd_handle.initialized);
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
         if (row % 2)
         {
-            ESP_LOGI(TAG, "Shift display left");
             ESP_LOGD(TAG,
                     "LCD handle:\n\ti2c_port: %d\n\tAddress: 0x%0x\n\tColumns: %d\n\tRows: %d\n\tDisplay Function: 0x%0x\n\tDisplay Control: 0x%0x\n\tDisplay Mode: 0x%0x\n\tCursor Column: %d\n\tCursor Row: %d\n\tBacklight: %d\n\tInitialised: %d",
                     lcd_handle.i2c_port, lcd_handle.address, lcd_handle.columns, lcd_handle.rows,
                     lcd_handle.display_function, lcd_handle.display_control, lcd_handle.display_mode,
                     lcd_handle.cursor_column, lcd_handle.cursor_row, lcd_handle.backlight,
                     lcd_handle.initialized);
+            ESP_LOGI(TAG, "Shift display left");
             lcd_display_shift_left(&lcd_handle);
             ESP_LOGD(TAG,
                     "LCD handle:\n\ti2c_port: %d\n\tAddress: 0x%0x\n\tColumns: %d\n\tRows: %d\n\tDisplay Function: 0x%0x\n\tDisplay Control: 0x%0x\n\tDisplay Mode: 0x%0x\n\tCursor Column: %d\n\tCursor Row: %d\n\tBacklight: %d\n\tInitialised: %d",
@@ -179,17 +176,16 @@ static void lcd_demo(void)
                     lcd_handle.display_function, lcd_handle.display_control, lcd_handle.display_mode,
                     lcd_handle.cursor_column, lcd_handle.cursor_row, lcd_handle.backlight,
                     lcd_handle.initialized);
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
         }
         else
         {
-            ESP_LOGI(TAG, "Shift display right");
             ESP_LOGD(TAG,
                     "LCD handle:\n\ti2c_port: %d\n\tAddress: 0x%0x\n\tColumns: %d\n\tRows: %d\n\tDisplay Function: 0x%0x\n\tDisplay Control: 0x%0x\n\tDisplay Mode: 0x%0x\n\tCursor Column: %d\n\tCursor Row: %d\n\tBacklight: %d\n\tInitialised: %d",
                     lcd_handle.i2c_port, lcd_handle.address, lcd_handle.columns, lcd_handle.rows,
                     lcd_handle.display_function, lcd_handle.display_control, lcd_handle.display_mode,
                     lcd_handle.cursor_column, lcd_handle.cursor_row, lcd_handle.backlight,
                     lcd_handle.initialized);
+            ESP_LOGI(TAG, "Shift display right");
             lcd_display_shift_right(&lcd_handle);
             ESP_LOGD(TAG,
                     "LCD handle:\n\ti2c_port: %d\n\tAddress: 0x%0x\n\tColumns: %d\n\tRows: %d\n\tDisplay Function: 0x%0x\n\tDisplay Control: 0x%0x\n\tDisplay Mode: 0x%0x\n\tCursor Column: %d\n\tCursor Row: %d\n\tBacklight: %d\n\tInitialised: %d",
@@ -197,11 +193,11 @@ static void lcd_demo(void)
                     lcd_handle.display_function, lcd_handle.display_control, lcd_handle.display_mode,
                     lcd_handle.cursor_column, lcd_handle.cursor_row, lcd_handle.backlight,
                     lcd_handle.initialized);
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
         }
+        ESP_LOGI(TAG, "Finished row %d", row);
+        vTaskDelay(20000 / portTICK_PERIOD_MS);
     }
-    //    ESP_LOGI(TAG, "Turn backlight off");
-    //    lcd_setBackLight(0); - This is causing display to use different character set
+    lcd_no_backlight(&lcd_handle);
 
     ESP_LOGI(TAG, "lcd_Demo finished");
 }

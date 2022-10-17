@@ -13,7 +13,7 @@
 extern "C" {
 #endif
 
-void register_lcdtools(void);
+void register_lcd_tools(void);
 
 #ifdef __cplusplus
 }

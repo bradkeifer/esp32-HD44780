@@ -68,11 +68,11 @@ void app_main(void)
     printf(" |             Steps to Use lcd-tools                         |\n");
     printf(" |                                                            |\n");
     printf(" |  1. Try 'help', check all supported commands               |\n");
-    printf(" |  2. Try 'i2cconfig' to configure your I2C bus              |\n");
-    printf(" |  3. Try 'lcd_detect' to scan devices on the bus             |\n");
-    printf(" |  4. Try 'i2cget' to get the content of specific register   |\n");
-    printf(" |  5. Try 'i2cset' to set the value of specific register     |\n");
-    printf(" |  6. Try 'i2cdump' to dump all the register (Experiment)    |\n");
+    printf(" |  2. Try 'lcd_detect' to scan devices on the I2C bus        |\n");
+    printf(" |  3. Try 'lcd_config' to configure your I2C bus             |\n");
+    printf(" |  4. Try 'lcd_handle' to output the LCD handle data         |\n");
+    printf(" |  5. Try 'lcd_init' to initialise LCD                       |\n");
+    printf(" |  6. Try 'lcd_write_str' to write a string to the LCD       |\n");
     printf(" |                                                            |\n");
     printf(" ==============================================================\n\n");
 

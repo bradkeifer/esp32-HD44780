@@ -46,7 +46,7 @@ extern "C" {
 #define LCD_ENTRY_DISPLAY_NO_SHIFT  0x00 /*!< Display does not shift*/
 
 #define LCD_HANDLE_DEFAULT_CONFIG() {                                   \
-    .i2c_port = I2C_MASTER_NUM,                                              \
+    .i2c_port = I2C_NUM_0,                                              \
     .address = 0x3f,                                                    \
     .columns = 20,                                                      \
     .rows = 4,                                                          \
@@ -141,7 +141,7 @@ esp_err_t lcd_write_char(lcd_handle_t *handle, char c);
  *          - ESP_ERR_INVALID_SIZE Write would cause screen display overflow
  *          - ESP error code propagated from error source
 */
-esp_err_t lcd_write_str(lcd_handle_t *handle, char* str);
+esp_err_t lcd_write_str(lcd_handle_t *handle, char *str);
 
 /**
  * @brief Move the cursor to a specified row and column
@@ -282,12 +282,52 @@ esp_err_t lcd_left_to_right(lcd_handle_t *handle);
 */
 esp_err_t lcd_right_to_left(lcd_handle_t *handle);
 
-void lcd_autoscroll(void);
-void lcd_noAutoscroll(void);
+/**
+ * @brief Enable autoscroll
+ *
+ * @details This gives the effect that the cursor will seem to not move but the
+ *          display does. Enabling this function breaks the row and column tracking
+ *          capability of the lcd_handle and hence is not yet supported by the LCD API.
+ *
+ * @param[inout] handle Display mode is updated.
+ *
+ * @return  - ESP_ERR_NOT_SUPPORTED This function is not yet supported
+*/
+esp_err_t lcd_autoscroll(lcd_handle_t *handle);
+
+/**
+ * @brief Disable autoscroll
+ *  *
+ * @param[inout] handle Display mode is updated.
+ *
+ * @return  - ESP_OK    Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_no_autoscroll(lcd_handle_t *handle);
+
+/*
 void lcd_createChar(uint8_t location, uint8_t charmap[]);
-void lcd_backlight(void);
-void lcd_noBacklight(void);
-void lcd_setBackLight(uint8_t new_val);
+*/
+
+/**
+ * @brief Enables backlight.
+ *
+ * @param[inout] handle Backlight element of the handle is updated.
+ *
+ * @return  - ESP_OK    Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_backlight(lcd_handle_t *handle);
+
+/**
+ * @brief Disables backlight.
+ *
+ * @param[inout] handle Backlight element of the handle is updated.
+ *
+ * @return  - ESP_OK    Success
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_no_backlight(lcd_handle_t *handle);
 
 #ifdef __cplusplus
 }

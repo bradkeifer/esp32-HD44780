@@ -41,17 +41,12 @@
 
 static const char *TAG = "cmd_lcd_tools";
 
-static gpio_num_t i2c_gpio_sda = I2C_MASTER_SDA_IO;
-static gpio_num_t i2c_gpio_scl = I2C_MASTER_SCL_IO;
-
-static uint32_t i2c_frequency = I2C_MASTER_FREQ_HZ;
-static i2c_port_t i2c_port = I2C_NUM_0;
-
 static lcd_handle_t lcd_handle = LCD_HANDLE_DEFAULT_CONFIG();
 
 static esp_err_t lcd_set_port(int port, lcd_handle_t *handle)
 {
-    if (port >= I2C_NUM_MAX) {
+    if (port >= I2C_NUM_MAX)
+    {
         ESP_LOGE(TAG, "Wrong port number: %d", port);
         return ESP_FAIL;
     }
@@ -73,54 +68,98 @@ static esp_err_t i2c_master_driver_initialize(void)
     return i2c_param_config(lcd_handle.i2c_port, &conf);
 }
 
-static struct {
-    struct arg_int *port;
-    struct arg_int *freq;
-    struct arg_int *sda;
-    struct arg_int *scl;
-    struct arg_end *end;
-} i2cconfig_args;
-
-static int do_i2cconfig_cmd(int argc, char **argv)
+static struct
 {
-    int nerrors = arg_parse(argc, argv, (void **)&i2cconfig_args);
-    if (nerrors != 0) {
-        arg_print_errors(stderr, i2cconfig_args.end, argv[0]);
+    struct arg_int *i2c_port;
+    struct arg_int *address;
+    struct arg_int *columns;
+    struct arg_int *rows;
+    struct arg_end *end;
+} lcd_config_args;
+
+static int do_lcd_config_cmd(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **)&lcd_config_args);
+    if (nerrors != 0)
+    {
+        arg_print_errors(stderr, lcd_config_args.end, argv[0]);
         return 0;
     }
 
     /* Check "--port" option */
-    if (i2cconfig_args.port->count) {
-        if (i2c_get_port(i2cconfig_args.port->ival[0], &i2c_port) != ESP_OK) {
+    if (lcd_config_args.i2c_port->count)
+    {
+        if (lcd_set_port(lcd_config_args.i2c_port->ival[0], &lcd_handle) != ESP_OK)
+        {
             return 1;
         }
     }
-    /* Check "--freq" option */
-    if (i2cconfig_args.freq->count) {
-        i2c_frequency = i2cconfig_args.freq->ival[0];
-    }
-    /* Check "--sda" option */
-    i2c_gpio_sda = i2cconfig_args.sda->ival[0];
-    /* Check "--scl" option */
-    i2c_gpio_scl = i2cconfig_args.scl->ival[0];
+    /* Check "--address" option */
+    lcd_handle.address = lcd_config_args.address->ival[0];
+    /* Check "columns" option */
+    lcd_handle.columns = lcd_config_args.columns->ival[0];
+    /* Check "rows" option */
+    lcd_handle.rows = lcd_config_args.rows->ival[0];
     return 0;
 }
 
-static void register_i2cconfig(void)
+static void register_lcd_config(void)
 {
-    i2cconfig_args.port = arg_int0(NULL, "port", "<0|1>", "Set the I2C bus port number");
-    i2cconfig_args.freq = arg_int0(NULL, "freq", "<Hz>", "Set the frequency(Hz) of I2C bus");
-    i2cconfig_args.sda = arg_int1(NULL, "sda", "<gpio>", "Set the gpio for I2C SDA");
-    i2cconfig_args.scl = arg_int1(NULL, "scl", "<gpio>", "Set the gpio for I2C SCL");
-    i2cconfig_args.end = arg_end(2);
-    const esp_console_cmd_t i2cconfig_cmd = {
-        .command = "i2cconfig",
-        .help = "Config I2C bus",
+    lcd_config_args.i2c_port = arg_int1(NULL, "i2c_port", "<0|1>", "Set the I2C bus port number");
+    lcd_config_args.address = arg_int1(NULL, "address", "<0xaddr>", "Set the address of the LCD on the I2C bus");
+    lcd_config_args.columns = arg_int1(NULL, "columns", "<columns>", "Set the number of columns of the LCD");
+    lcd_config_args.rows = arg_int1(NULL, "rows", "<rows>", "Set the number of rows of the LCD");
+    lcd_config_args.end = arg_end(2);
+    const esp_console_cmd_t lcd_config_cmd = {
+        .command = "lcd_config",
+        .help = "Config LCD Parameters",
         .hint = NULL,
-        .func = &do_i2cconfig_cmd,
-        .argtable = &i2cconfig_args
-    };
-    ESP_ERROR_CHECK(esp_console_cmd_register(&i2cconfig_cmd));
+        .func = &do_lcd_config_cmd,
+        .argtable = &lcd_config_args};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_config_cmd));
+}
+
+static struct
+{
+    struct arg_int *column;
+    struct arg_int *row;
+    struct arg_end *end;
+} lcd_set_cursor_args;
+
+static int do_lcd_set_cursor_cmd(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **)&lcd_set_cursor_args);
+    if (nerrors != 0)
+    {
+        arg_print_errors(stderr, lcd_set_cursor_args.end, argv[0]);
+        return 0;
+    }
+
+    /* Check "--row" and "--column" options */
+    if (lcd_set_cursor_args.row->count && lcd_set_cursor_args.column->count)
+    {
+        if (lcd_set_cursor(&lcd_handle,
+                            lcd_set_cursor_args.column->ival[0],
+                            lcd_set_cursor_args.row->ival[0]) != ESP_OK)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void register_lcd_set_cursor(void)
+{
+    lcd_set_cursor_args.column = arg_int1("c", "column", "<column>", "Set the column number to move to");
+    lcd_set_cursor_args.row = arg_int1("r", "row", "<row>", "Set the row number to move to");
+    lcd_set_cursor_args.end = arg_end(2);
+    const esp_console_cmd_t lcd_set_cursor_cmd = {
+        .command = "lcd_set_cursor",
+        .help = "Set the cursor position",
+        .hint = NULL,
+        .func = &do_lcd_set_cursor_cmd,
+        .argtable = &lcd_set_cursor_args};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_set_cursor_cmd));
 }
 
 static int do_lcd_detect_cmd(int argc, char **argv)
@@ -129,9 +168,11 @@ static int do_lcd_detect_cmd(int argc, char **argv)
     i2c_master_driver_initialize();
     uint8_t address;
     printf("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f\r\n");
-    for (int i = 0; i < 128; i += 16) {
+    for (int i = 0; i < 128; i += 16)
+    {
         printf("%02x: ", i);
-        for (int j = 0; j < 16; j++) {
+        for (int j = 0; j < 16; j++)
+        {
             fflush(stdout);
             address = i + j;
             i2c_cmd_handle_t cmd = i2c_cmd_link_create();
@@ -140,11 +181,16 @@ static int do_lcd_detect_cmd(int argc, char **argv)
             i2c_master_stop(cmd);
             esp_err_t ret = i2c_master_cmd_begin(lcd_handle.i2c_port, cmd, 50 / portTICK_RATE_MS);
             i2c_cmd_link_delete(cmd);
-            if (ret == ESP_OK) {
+            if (ret == ESP_OK)
+            {
                 printf("%02x ", address);
-            } else if (ret == ESP_ERR_TIMEOUT) {
+            }
+            else if (ret == ESP_ERR_TIMEOUT)
+            {
                 printf("UU ");
-            } else {
+            }
+            else
+            {
                 printf("-- ");
             }
         }
@@ -162,264 +208,511 @@ static void register_lcd_detect(void)
         .help = "Scan I2C bus for devices (may or may not be LCD's)",
         .hint = NULL,
         .func = &do_lcd_detect_cmd,
-        .argtable = NULL
-    };
+        .argtable = NULL};
     ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_detect_cmd));
 }
 
-static struct {
-    struct arg_int *chip_address;
-    struct arg_int *register_address;
-    struct arg_int *data_length;
-    struct arg_end *end;
-} i2cget_args;
-
-static int do_i2cget_cmd(int argc, char **argv)
+static int do_lcd_init_cmd(int argc, char **argv)
 {
-    int nerrors = arg_parse(argc, argv, (void **)&i2cget_args);
-    if (nerrors != 0) {
-        arg_print_errors(stderr, i2cget_args.end, argv[0]);
-        return 0;
-    }
+    esp_err_t ret = ESP_OK;
 
-    /* Check chip address: "-c" option */
-    int chip_addr = i2cget_args.chip_address->ival[0];
-    /* Check register address: "-r" option */
-    int data_addr = -1;
-    if (i2cget_args.register_address->count) {
-        data_addr = i2cget_args.register_address->ival[0];
-    }
-    /* Check data length: "-l" option */
-    int len = 1;
-    if (i2cget_args.data_length->count) {
-        len = i2cget_args.data_length->ival[0];
-    }
-    uint8_t *data = malloc(len);
-
-    i2c_driver_install(i2c_port, I2C_MODE_MASTER, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
+    i2c_driver_install(lcd_handle.i2c_port, I2C_MODE_MASTER, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
     i2c_master_driver_initialize();
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    if (data_addr != -1) {
-        i2c_master_write_byte(cmd, chip_addr << 1 | WRITE_BIT, ACK_CHECK_EN);
-        i2c_master_write_byte(cmd, data_addr, ACK_CHECK_EN);
-        i2c_master_start(cmd);
-    }
-    i2c_master_write_byte(cmd, chip_addr << 1 | READ_BIT, ACK_CHECK_EN);
-    if (len > 1) {
-        i2c_master_read(cmd, data, len - 1, ACK_VAL);
-    }
-    i2c_master_read_byte(cmd, data + len - 1, NACK_VAL);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, 1000 / portTICK_RATE_MS);
-    i2c_cmd_link_delete(cmd);
-    if (ret == ESP_OK) {
-        for (int i = 0; i < len; i++) {
-            printf("0x%02x ", data[i]);
-            if ((i + 1) % 16 == 0) {
-                printf("\r\n");
-            }
-        }
-        if (len % 16) {
-            printf("\r\n");
-        }
-    } else if (ret == ESP_ERR_TIMEOUT) {
-        ESP_LOGW(TAG, "Bus is busy");
-    } else {
-        ESP_LOGW(TAG, "Read failed");
-    }
-    free(data);
-    i2c_driver_delete(i2c_port);
+    ret = lcd_init(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("LCD successfully initialised\n");
+    else
+        printf("Unable to initialise LCD.\n");
+    fflush(stdout);
     return 0;
 }
 
-static void register_i2cget(void)
+static void register_lcd_init(void)
 {
-    i2cget_args.chip_address = arg_int1("c", "chip", "<chip_addr>", "Specify the address of the chip on that bus");
-    i2cget_args.register_address = arg_int0("r", "register", "<register_addr>", "Specify the address on that chip to read from");
-    i2cget_args.data_length = arg_int0("l", "length", "<length>", "Specify the length to read from that data address");
-    i2cget_args.end = arg_end(1);
-    const esp_console_cmd_t i2cget_cmd = {
-        .command = "i2cget",
-        .help = "Read registers visible through the I2C bus",
+    const esp_console_cmd_t lcd_init_cmd = {
+        .command = "lcd_init",
+        .help = "Initialise the LCD panel",
         .hint = NULL,
-        .func = &do_i2cget_cmd,
-        .argtable = &i2cget_args
-    };
-    ESP_ERROR_CHECK(esp_console_cmd_register(&i2cget_cmd));
+        .func = &do_lcd_init_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_init_cmd));
 }
 
-static struct {
-    struct arg_int *chip_address;
-    struct arg_int *register_address;
-    struct arg_int *data;
-    struct arg_end *end;
-} i2cset_args;
-
-static int do_i2cset_cmd(int argc, char **argv)
+static int do_lcd_home_cmd(int argc, char **argv)
 {
-    int nerrors = arg_parse(argc, argv, (void **)&i2cset_args);
-    if (nerrors != 0) {
-        arg_print_errors(stderr, i2cset_args.end, argv[0]);
-        return 0;
-    }
+    esp_err_t ret = ESP_OK;
 
-    /* Check chip address: "-c" option */
-    int chip_addr = i2cset_args.chip_address->ival[0];
-    /* Check register address: "-r" option */
-    int data_addr = 0;
-    if (i2cset_args.register_address->count) {
-        data_addr = i2cset_args.register_address->ival[0];
-    }
-    /* Check data: "-d" option */
-    int len = i2cset_args.data->count;
-
-    i2c_driver_install(i2c_port, I2C_MODE_MASTER, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
-    i2c_master_driver_initialize();
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, chip_addr << 1 | WRITE_BIT, ACK_CHECK_EN);
-    if (i2cset_args.register_address->count) {
-        i2c_master_write_byte(cmd, data_addr, ACK_CHECK_EN);
-    }
-    for (int i = 0; i < len; i++) {
-        i2c_master_write_byte(cmd, i2cset_args.data->ival[i], ACK_CHECK_EN);
-    }
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, 1000 / portTICK_RATE_MS);
-    i2c_cmd_link_delete(cmd);
-    if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "Write OK");
-    } else if (ret == ESP_ERR_TIMEOUT) {
-        ESP_LOGW(TAG, "Bus is busy");
-    } else {
-        ESP_LOGW(TAG, "Write Failed");
-    }
-    i2c_driver_delete(i2c_port);
+    ret = lcd_home(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("lcd_home success\n");
+    else
+        printf("Unable to home the LCD.\n");
+    fflush(stdout);
     return 0;
 }
 
-static void register_i2cset(void)
+static void register_lcd_home(void)
 {
-    i2cset_args.chip_address = arg_int1("c", "chip", "<chip_addr>", "Specify the address of the chip on that bus");
-    i2cset_args.register_address = arg_int0("r", "register", "<register_addr>", "Specify the address on that chip to read from");
-    i2cset_args.data = arg_intn(NULL, NULL, "<data>", 0, 256, "Specify the data to write to that data address");
-    i2cset_args.end = arg_end(2);
-    const esp_console_cmd_t i2cset_cmd = {
-        .command = "i2cset",
-        .help = "Set registers visible through the I2C bus",
+    const esp_console_cmd_t lcd_home_cmd = {
+        .command = "lcd_home",
+        .help = "Return home",
         .hint = NULL,
-        .func = &do_i2cset_cmd,
-        .argtable = &i2cset_args
-    };
-    ESP_ERROR_CHECK(esp_console_cmd_register(&i2cset_cmd));
+        .func = &do_lcd_home_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_home_cmd));
 }
 
-static struct {
-    struct arg_int *chip_address;
-    struct arg_int *size;
-    struct arg_end *end;
-} i2cdump_args;
-
-static int do_i2cdump_cmd(int argc, char **argv)
+static int do_lcd_clear_screen_cmd(int argc, char **argv)
 {
-    int nerrors = arg_parse(argc, argv, (void **)&i2cdump_args);
-    if (nerrors != 0) {
-        arg_print_errors(stderr, i2cdump_args.end, argv[0]);
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_clear_screen(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("lcd_clear_screen success\n");
+    else
+        printf("Unable to home the LCD.\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_clear_screen(void)
+{
+    const esp_console_cmd_t lcd_clear_screen_cmd = {
+        .command = "lcd_clear_screen",
+        .help = "Clear the display",
+        .hint = NULL,
+        .func = &do_lcd_clear_screen_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_clear_screen_cmd));
+}
+
+static int do_lcd_no_display_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_no_display(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("lcd_no_display success\n");
+    else
+        printf("Unable to turn off the LCD display.\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_no_display(void)
+{
+    const esp_console_cmd_t lcd_no_display_cmd = {
+        .command = "lcd_no_display",
+        .help = "Turn the display off",
+        .hint = NULL,
+        .func = &do_lcd_no_display_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_no_display_cmd));
+}
+
+static int do_lcd_display_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_display(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("lcd_display success\n");
+    else
+        printf("Unable to turn on the LCD display.\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_display(void)
+{
+    const esp_console_cmd_t lcd_display_cmd = {
+        .command = "lcd_display",
+        .help = "Turn the display on",
+        .hint = NULL,
+        .func = &do_lcd_display_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_display_cmd));
+}
+
+static int do_lcd_no_cursor_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_no_cursor(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("lcd_no_cursor success\n");
+    else
+        printf("Unable to turn off the LCD cursor.\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_no_cursor(void)
+{
+    const esp_console_cmd_t lcd_no_cursor_cmd = {
+        .command = "lcd_no_cursor",
+        .help = "Turn the cursor off",
+        .hint = NULL,
+        .func = &do_lcd_no_cursor_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_no_cursor_cmd));
+}
+
+static int do_lcd_cursor_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_cursor(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("lcd_cursor success\n");
+    else
+        printf("Unable to turn on the cursor.\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_cursor(void)
+{
+    const esp_console_cmd_t lcd_cursor_cmd = {
+        .command = "lcd_cursor",
+        .help = "Turn the cursor on",
+        .hint = NULL,
+        .func = &do_lcd_cursor_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_cursor_cmd));
+}
+
+static int do_lcd_no_blink_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_no_blink(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("lcd_no_blink success\n");
+    else
+        printf("Unable to turn off the LCD cursor blink.\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_no_blink(void)
+{
+    const esp_console_cmd_t lcd_no_blink_cmd = {
+        .command = "lcd_no_blink",
+        .help = "Turn the cursor blink off",
+        .hint = NULL,
+        .func = &do_lcd_no_blink_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_no_blink_cmd));
+}
+
+static int do_lcd_blink_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_blink(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("lcd_blink success\n");
+    else
+        printf("Unable to turn on the cursor blink.\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_blink(void)
+{
+    const esp_console_cmd_t lcd_blink_cmd = {
+        .command = "lcd_blink",
+        .help = "Turn the cursor blink on",
+        .hint = NULL,
+        .func = &do_lcd_blink_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_blink_cmd));
+}
+
+static int do_lcd_no_autoscroll_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_no_autoscroll(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("lcd_no_autoscroll success\n");
+    else
+        printf("Unable to disable autoscroll\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_no_autoscroll(void)
+{
+    const esp_console_cmd_t lcd_no_autoscroll_cmd = {
+        .command = "lcd_no_autoscroll",
+        .help = "Disable autoscroll",
+        .hint = NULL,
+        .func = &do_lcd_no_autoscroll_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_no_autoscroll_cmd));
+}
+
+static int do_lcd_autoscroll_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_autoscroll(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("lcd_autoscroll success\n");
+    else
+        printf("Unable to enable autoscroll\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_autoscroll(void)
+{
+    const esp_console_cmd_t lcd_autoscroll_cmd = {
+        .command = "lcd_autoscroll",
+        .help = "Enable autoscroll",
+        .hint = NULL,
+        .func = &do_lcd_autoscroll_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_autoscroll_cmd));
+}
+
+static int do_lcd_no_backlight_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_no_backlight(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("lcd_no_backlight success\n");
+    else
+        printf("Unable to disable backlight\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_no_backlight(void)
+{
+    const esp_console_cmd_t lcd_no_backlight_cmd = {
+        .command = "lcd_no_backlight",
+        .help = "Disable backlight",
+        .hint = NULL,
+        .func = &do_lcd_no_backlight_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_no_backlight_cmd));
+}
+
+static int do_lcd_backlight_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_backlight(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("lcd_backlight success\n");
+    else
+        printf("Unable to enable backlight\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_backlight(void)
+{
+    const esp_console_cmd_t lcd_backlight_cmd = {
+        .command = "lcd_backlight",
+        .help = "Enable backlight",
+        .hint = NULL,
+        .func = &do_lcd_backlight_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_backlight_cmd));
+}
+
+static int do_lcd_l_to_r_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_left_to_right(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("LCD entry mode set for left to right\n");
+    else
+        printf("Unable to set entry mode for left to right\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_l_to_r(void)
+{
+    const esp_console_cmd_t lcd_l_to_r_cmd = {
+        .command = "lcd_l_to_r",
+        .help = "Set text direction to be left to right",
+        .hint = NULL,
+        .func = &do_lcd_l_to_r_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_l_to_r_cmd));
+}
+
+static int do_lcd_r_to_l_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_right_to_left(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("LCD entry mode set for right to left\n");
+    else
+        printf("Unable to set entry mode for right to left\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_r_to_l(void)
+{
+    const esp_console_cmd_t lcd_r_to_l_cmd = {
+        .command = "lcd_r_to_l",
+        .help = "Set text direction to be right to left",
+        .hint = NULL,
+        .func = &do_lcd_r_to_l_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_r_to_l_cmd));
+}
+
+static int do_lcd_shift_r_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_display_shift_right(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("LCD display shifted right\n");
+    else
+        printf("Unable to shift display right\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_shift_r(void)
+{
+    const esp_console_cmd_t lcd_shift_r_cmd = {
+        .command = "lcd_shift_r",
+        .help = "Shift display right",
+        .hint = NULL,
+        .func = &do_lcd_shift_r_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_shift_r_cmd));
+}
+
+static int do_lcd_shift_l_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_display_shift_left(&lcd_handle);
+    if (ret == ESP_OK)
+        printf("LCD display shifted left\n");
+    else
+        printf("Unable to shift display left\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_shift_l(void)
+{
+    const esp_console_cmd_t lcd_shift_l_cmd = {
+        .command = "lcd_shift_l",
+        .help = "Shift display left",
+        .hint = NULL,
+        .func = &do_lcd_shift_l_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_shift_l_cmd));
+}
+
+static int do_lcd_handle_cmd(int argc, char **argv)
+{
+    printf("lcd_handle:\n\ti2c_port: %d\n\taddress: 0x%0x\n\tcolumns: %d\n\trows: %d\n",
+           lcd_handle.i2c_port, lcd_handle.address, lcd_handle.columns, lcd_handle.rows);
+    printf("\tdisplay function: 0x%0x\n\tdisplay_control: 0x%0x\n\t",
+           lcd_handle.display_function, lcd_handle.display_control);
+    printf("display mode: 0x%0x\n\tcursor column: %d\n\tcursor row: %d\n",
+           lcd_handle.display_mode, lcd_handle.cursor_column, lcd_handle.cursor_row);
+    printf("\tbacklight: %d\n\tinitialized state: %s\n",
+           lcd_handle.backlight, lcd_handle.initialized ? "true" : "false");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_lcd_handle(void)
+{
+    const esp_console_cmd_t lcd_handle_cmd = {
+        .command = "lcd_handle",
+        .help = "Output the LCD handle data",
+        .hint = NULL,
+        .func = &do_lcd_handle_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_handle_cmd));
+}
+
+static struct
+{
+    struct arg_str *str;
+    struct arg_end *end;
+} lcd_write_str_args;
+
+static int do_lcd_write_str_cmd(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **)&lcd_write_str_args);
+    if (nerrors != 0)
+    {
+        arg_print_errors(stderr, lcd_write_str_args.end, argv[0]);
         return 0;
     }
 
-    /* Check chip address: "-c" option */
-    int chip_addr = i2cdump_args.chip_address->ival[0];
-    /* Check read size: "-s" option */
-    int size = 1;
-    if (i2cdump_args.size->count) {
-        size = i2cdump_args.size->ival[0];
-    }
-    if (size != 1 && size != 2 && size != 4) {
-        ESP_LOGE(TAG, "Wrong read size. Only support 1,2,4");
-        return 1;
-    }
-    i2c_driver_install(i2c_port, I2C_MODE_MASTER, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
-    i2c_master_driver_initialize();
-    uint8_t data_addr;
-    uint8_t data[4];
-    int32_t block[16];
-    printf("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f"
-           "    0123456789abcdef\r\n");
-    for (int i = 0; i < 128; i += 16) {
-        printf("%02x: ", i);
-        for (int j = 0; j < 16; j += size) {
+    /* Check "--string" option */
+    printf("Count = %d\n", lcd_write_str_args.str->count);
+    if (lcd_write_str_args.str->count)
+    {
+        if (lcd_write_str(&lcd_handle, (char *)lcd_write_str_args.str->sval[0]) != ESP_OK)
+        {
+            printf("Error writing string: %s\n", lcd_write_str_args.str->sval[0]);
             fflush(stdout);
-            data_addr = i + j;
-            i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-            i2c_master_start(cmd);
-            i2c_master_write_byte(cmd, chip_addr << 1 | WRITE_BIT, ACK_CHECK_EN);
-            i2c_master_write_byte(cmd, data_addr, ACK_CHECK_EN);
-            i2c_master_start(cmd);
-            i2c_master_write_byte(cmd, chip_addr << 1 | READ_BIT, ACK_CHECK_EN);
-            if (size > 1) {
-                i2c_master_read(cmd, data, size - 1, ACK_VAL);
-            }
-            i2c_master_read_byte(cmd, data + size - 1, NACK_VAL);
-            i2c_master_stop(cmd);
-            esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, 50 / portTICK_RATE_MS);
-            i2c_cmd_link_delete(cmd);
-            if (ret == ESP_OK) {
-                for (int k = 0; k < size; k++) {
-                    printf("%02x ", data[k]);
-                    block[j + k] = data[k];
-                }
-            } else {
-                for (int k = 0; k < size; k++) {
-                    printf("XX ");
-                    block[j + k] = -1;
-                }
-            }
+            return 1;
         }
-        printf("   ");
-        for (int k = 0; k < 16; k++) {
-            if (block[k] < 0) {
-                printf("X");
-            }
-            if ((block[k] & 0xff) == 0x00 || (block[k] & 0xff) == 0xff) {
-                printf(".");
-            } else if ((block[k] & 0xff) < 32 || (block[k] & 0xff) >= 127) {
-                printf("?");
-            } else {
-                printf("%c", block[k] & 0xff);
-            }
-        }
-        printf("\r\n");
+        printf("Success writing string: %s\n", lcd_write_str_args.str->sval[0]);
+        fflush(stdout);
     }
-    i2c_driver_delete(i2c_port);
     return 0;
 }
 
-static void register_i2cdump(void)
+static void register_lcd_write_str(void)
 {
-    i2cdump_args.chip_address = arg_int1("c", "chip", "<chip_addr>", "Specify the address of the chip on that bus");
-    i2cdump_args.size = arg_int0("s", "size", "<size>", "Specify the size of each read");
-    i2cdump_args.end = arg_end(1);
-    const esp_console_cmd_t i2cdump_cmd = {
-        .command = "i2cdump",
-        .help = "Examine registers visible through the I2C bus",
+    lcd_write_str_args.str = arg_str1(NULL, "string", "<string>", "Character string to write to LCD");
+    lcd_write_str_args.end = arg_end(2);
+    const esp_console_cmd_t lcd_write_str_cmd = {
+        .command = "lcd_write_str",
+        .help = "Write a string of character to the LCD",
         .hint = NULL,
-        .func = &do_i2cdump_cmd,
-        .argtable = &i2cdump_args
-    };
-    ESP_ERROR_CHECK(esp_console_cmd_register(&i2cdump_cmd));
+        .func = &do_lcd_write_str_cmd,
+        .argtable = &lcd_write_str_args};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_write_str_cmd));
 }
 
 void register_lcd_tools(void)
 {
-    /* i2c tools
-    register_i2cconfig();
-    register_i2cdectect();
-    register_i2cget();
-    register_i2cset();
-    register_i2cdump();
-    end of i2c tools */
     register_lcd_config();
+    register_lcd_init();
     register_lcd_detect();
+    register_lcd_handle();
+    register_lcd_home();
+    register_lcd_write_str();
+    register_lcd_set_cursor();
+    register_lcd_clear_screen();
+    register_lcd_no_display();
+    register_lcd_display();
+    register_lcd_no_cursor();
+    register_lcd_cursor();
+    register_lcd_no_blink();
+    register_lcd_blink();
+    register_lcd_no_autoscroll();
+    register_lcd_autoscroll();
+    register_lcd_no_backlight();
+    register_lcd_backlight();
+    register_lcd_shift_l();
+    register_lcd_shift_r();
+    register_lcd_l_to_r();
+    register_lcd_r_to_l();
 }
