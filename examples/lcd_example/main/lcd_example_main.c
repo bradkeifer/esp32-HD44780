@@ -1,5 +1,5 @@
 #include <stdio.h>
-#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
+#define LOG_LOCAL_LEVEL ESP_LOG_INFO
 #include "esp_log.h"
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
@@ -48,7 +48,7 @@ void app_main(void)
     {
         ESP_LOGI(TAG, "Running LCD Demo");
         lcd_demo();
-        vTaskDelay(3 * 1000 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
 
@@ -120,7 +120,6 @@ static void lcd_demo(void)
         while (lcd_handle.cursor_row == row)
         {
             sprintf(num, "%c", c);
-            //ESP_LOGI(TAG, "Write character:%c", c);
             lcd_write_char(&lcd_handle, c);
             c++;
 
@@ -129,7 +128,7 @@ static void lcd_demo(void)
             {
                 ESP_LOGI(TAG, "Testing text direction right to left");
                 lcd_right_to_left(&lcd_handle);
-                vTaskDelay(5000 / portTICK_PERIOD_MS);
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
                 ESP_LOGD(TAG,
                         "LCD handle:\n\ti2c_port: %d\n\tAddress: 0x%0x\n\tColumns: %d\n\tRows: %d\n\tDisplay Function: 0x%0x\n\tDisplay Control: 0x%0x\n\tDisplay Mode: 0x%0x\n\tCursor Column: %d\n\tCursor Row: %d\n\tBacklight: %d\n\tInitialised: %d",
                         lcd_handle.i2c_port, lcd_handle.address, lcd_handle.columns, lcd_handle.rows,
@@ -195,9 +194,11 @@ static void lcd_demo(void)
                     lcd_handle.initialized);
         }
         ESP_LOGI(TAG, "Finished row %d", row);
-        vTaskDelay(20000 / portTICK_PERIOD_MS);
+        if (LOG_LOCAL_LEVEL > ESP_LOG_INFO)
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
+        else
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     lcd_no_backlight(&lcd_handle);
-
     ESP_LOGI(TAG, "lcd_Demo finished");
 }
