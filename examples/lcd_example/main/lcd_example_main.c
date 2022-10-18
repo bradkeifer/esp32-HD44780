@@ -6,7 +6,7 @@
 #include "freertos/task.h"
 #include "driver/i2c.h"
 #include "sdkconfig.h"
-#include "HD44780.h"
+#include "lcd.h"
 
 #define I2C_MASTER_SDA_IO CONFIG_SDA_GPIO
 #define I2C_MASTER_SCL_IO CONFIG_SCL_GPIO

@@ -1,0 +1,21 @@
+{
+  "name": "esp32-HD44780",
+  "version": "0.0.1",
+  "keywords": "esp32, lcd, hd44780, esp32-HD44780",
+  "description": "ESP32 compatible driver for I2C-based HD44780 LCD displays.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bradkeifer/esp32-HD44780"
+  },
+  "frameworks": "espidf",
+  "platforms": "*",
+  "build": {
+    "flags": [
+      "-Idriver/include",
+      "-Idriver/private_include",
+    ],
+    "includeDir": ".",
+    "srcDir": ".",
+    "srcFilter": ["-<*>", "+<driver>"]
+  }
+}

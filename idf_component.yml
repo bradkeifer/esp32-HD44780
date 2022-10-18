@@ -1,0 +1,2 @@
+description: ESP32 compatible driver for I2C-based HD44780 LCD Display peripheral.
+url: https://github.com/bradkeifer/esp32-HD44780
