@@ -44,14 +44,14 @@ To run this example, you should have any ESP32, ESP32-S and ESP32-C based develo
 
 **Note:** The following pin assignments are used by default, you can change them when you configure the project.
 
-|                     | SDA    | SCL    | GND  | VCC  |
-| ------------------- | ------ | ------ | ---- | ---- |
-| ESP32 I2C Master    | GPIO18 | GPIO19 | GND  | 3.3V |
-| ESP32-S2 I2C Master | GPIO18 | GPIO19 | GND  | 3.3V |
-| ESP32-S3 I2C Master | GPIO48 | GPIO2  | GND  | 3.3V |
-| ESP32-C3 I2C Master | GPIO8  | GPIO6  | GND  | 3.3V |
-| ESP32-H2 I2C Master | GPIO8  | GPIO6  | GND  | 3.3V |
-| LCD Display         | SDA    | SCL    | GND  | VCC  |
+|                     | SDA    | SCL    |
+| ------------------- | ------ | ------ |
+| ESP32 I2C Master    | GPIO18 | GPIO19 |
+| ESP32-S2 I2C Master | GPIO18 | GPIO19 |
+| ESP32-S3 I2C Master | GPIO48 | GPIO2  |
+| ESP32-C3 I2C Master | GPIO8  | GPIO6  |
+| ESP32-H2 I2C Master | GPIO8  | GPIO6  |
+| LCD Display         | SDA    | SCL    |
 
 **Note: ** There’s no need to add an external pull-up resistors for SDA/SCL pin, because the driver will enable the internal pull-up resistors itself.
 
@@ -117,9 +117,9 @@ lcd-tools> help
 help 
   Print the list of registered commands
 
-lcd_config  --i2c_port=<0\\|1> --address=<0xaddr> --columns=<columns> --rows=<rows>
+lcd_config  --i2c_port=<0|1> --address=<0xaddr> --columns=<columns> --rows=<rows>
   Config LCD Parameters
-  --i2c_port=<0\\|1>  Set the I2C bus port number
+  --i2c_port=<0|1>  Set the I2C bus port number
   --address=<0xaddr>  Set the address of the LCD on the I2C bus
   --columns=<columns>  Set the number of columns of the LCD
   --rows=<rows>  Set the number of rows of the LCD
@@ -128,7 +128,7 @@ lcd_init
   Initialise the LCD panel
 
 lcd_detect 
-  Scan I2C bus \\for devices (may or may not be LCD\'s)
+  Scan I2C bus for devices (may or may not be LCD\'s)
 
 lcd_handle 
   Output the LCD handle data
@@ -206,20 +206,20 @@ restart
 tasks 
   Get information about running tasks
 
-deep_sleep  [-t <t>] [--io\\=<n>] [--io_level=<0\\|1>]
+deep_sleep  [-t <t>] [--io=<n>] [--io_level=<0|1>]
   Enter deep sleep mode. Two wakeup modes are supported: timer and GPIO. If no
   wakeup option is specified, will sleep indefinitely.
   -t, --time=<t>  Wake up time, ms
       --io=<n>  If specified, wakeup using GPIO with given number
   --io_level=<0|1>  GPIO level to trigger wakeup
 
-light_sleep  [-t <t>] [--io\\=<n>]... [--io_level=<0\\|1>]...
+light_sleep  [-t <t>] [--io=<n>]... [--io_level=<0|1>]...
   Enter light sleep mode. Two wakeup modes are supported: timer and GPIO. Mult
   iple GPIO pins can be specified using pairs of 'io' and 'io_level' arguments
   . Will also wake up on UART input.
   -t, --time=<t>  Wake up time, ms
       --io=<n>  If specified, wakeup using GPIO with given number
-  --io_level=<0\\|1>  GPIO level to trigger wakeup
+  --io_level=<0|1>  GPIO level to trigger wakeup
 ```
 
 ### Configure the LCD
