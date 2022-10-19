@@ -12,7 +12,7 @@ menu "Example Configuration"
     endchoice
 
     config I2C_CLK_FREQ
-        int "I2C clk frequency"
+        int "I2C clock frequency"
         default 200000
         range 100000 4000000
         help
@@ -25,7 +25,7 @@ menu "Example Configuration"
         default 8 if IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
         default 18 if IDF_TARGET_ESP32S2
         default 48 if IDF_TARGET_ESP32S3
-        default 13
+        default 18
         help
             GPIO number (IOxx) to be used for I2C Serial Data Line (SDA).
             Some GPIOs are used for other purposes (flash connections, etc.) and cannot be used for I2C comms.
@@ -36,7 +36,7 @@ menu "Example Configuration"
         default 8 if IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
         default 18 if IDF_TARGET_ESP32S2
         default 48 if IDF_TARGET_ESP32S3
-        default 16
+        default 19
         help
             GPIO number (IOxx) to be used for I2C Serical Clock (SCL).
             Some GPIOs are used for other purposes (flash connections, etc.) and cannot be used for I2C comms.

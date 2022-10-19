@@ -1,36 +1,42 @@
-_Note that this is a template for an ESP-IDF example README.md file. When using this template, replace all these emphasised placeholders with example-specific content._
-
-| Supported Targets | _Supported target, e.g. ESP32_ | _Another supported target, e.g. ESP32-S3_ |
-| ----------------- | ------------------------------ | ----------------------------------------- |
-
-_If the example supports all targets supported by ESP-IDF then the table can be omitted_
-# _Example Title_
+# LCD Example
 
 (See the README.md file in the upper level 'examples' directory for more information about examples.)
 
-_What is this example? What does it do?_
-
-_What features of ESP-IDF does it use?_
-
-_What could someone create based on this example? ie applications/use cases/etc_
-
-_If there are any acronyms or Espressif-only words used here, explain them or mention where in the datasheet/TRM this information can be found._
+This example demonstrates some of the features of the LCD API and provides an example application that could be used where an alphanumeric liquid crystal display (LCD) based on the HD44780 chipset is connected to the esp32 MCU via an I2C bus.
 
 ## How to use example
 
 ### Hardware Required
 
-_If possible, example should be able to run on any commonly available ESP32 development board. Otherwise, describe what specific hardware should be used._
+To run this example, you should have any ESP32, ESP32-S and ESP32-C based development board and a HD44780-based LCD display with an I2C interface.
 
-_If any other items (server, BLE device, app, second chip, whatever) are needed, mention them here. Include links if applicable. Explain how to set them up._
+#### Pin Assignment:
+
+**Note:** The following pin assignments are used by default, you can change them when you configure the project.
+
+|                     | SDA    | SCL    |
+| ------------------- | ------ | ------ |
+| ESP32 I2C Master    | GPIO18 | GPIO19 |
+| ESP32-S2 I2C Master | GPIO18 | GPIO19 |
+| ESP32-S3 I2C Master | GPIO48 | GPIO2  |
+| ESP32-C3 I2C Master | GPIO8  | GPIO6  |
+| ESP32-H2 I2C Master | GPIO8  | GPIO6  |
+| LCD Display         | SDA    | SCL    |
+
+**Note: ** There’s no need to add an external pull-up resistors for SDA/SCL pin, because the driver will enable the internal pull-up resistors itself.
 
 ### Configure the project
 
-```
-idf.py menuconfig
-```
+Open the project configuration menu (`idf.py menuconfig`). Then go into `Example Configuration` menu.
 
-* _If there is any project configuration that the user must set for this example, mention this here._
+- Select which `I2C peripheral to use`.
+- Select the `I2C clock frequency`.
+- Select the `SDA GPIO number` for the I2C bus.
+- Select the `SCL GPIO number` for the I2C bus.
+- Select the `LCD Address` for the LCD display on I2C bus.
+- Select the `LCD Rows` for the LCD display.
+- Select the `LCD Columns` for the LCD display.
+- Select the initial state of the LCD backlight.
 
 ### Build and Flash
 
@@ -48,20 +54,68 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-_Include an example of the console output from the running example, here:_
-
 ```
-Use this style for pasting the log.
+I (390) lcd_example: Running LCD Demo
+I (390) lcd_example: Clear screen
+I (390) lcd_example: Write string:20x4 I2C LCD
+I (1430) lcd_example: Clear screen
+I (1430) lcd_example: Write string:Lets write some characters!
+I (2520) lcd_example: Clear screen
+I (2530) lcd_example: Set cursor on column 0, row 0
+I (2560) lcd_example: Testing text direction right to left
+I (3600) lcd_example: Reverting text direction to left to right
+I (3670) lcd_example: Shift display right
+I (3680) lcd_example: Finished row 0
+I (4680) lcd_example: Set cursor on column 0, row 1
+I (4710) lcd_example: Testing text direction right to left
+I (5750) lcd_example: Reverting text direction to left to right
+I (5820) lcd_example: Shift display left
+I (5830) lcd_example: Finished row 1
+I (6830) lcd_example: Set cursor on column 0, row 2
+I (6860) lcd_example: Testing text direction right to left
+I (7900) lcd_example: Reverting text direction to left to right
+I (7970) lcd_example: Shift display right
+I (7980) lcd_example: Finished row 2
+I (8980) lcd_example: Set cursor on column 0, row 3
+I (9010) lcd_example: Testing text direction right to left
+I (10050) lcd_example: Reverting text direction to left to right
+I (10120) lcd_example: Shift display left
+I (10130) lcd_example: Finished row 3
+I (11130) lcd_example: LCD Demo finished
 ```
 
-_If the user is supposed to interact with the example at this point (read/write GATT attribute, send HTTP request, press button, etc. then mention it here)_
-
-_For examples where ESP32 is connected  with some other hardware, include a table or schematics with connection details._
+For a 20x4 LCD display, the display will briefly show the following characters at the end of the LCD Demo cycle, and then the cycle will repeat indefinitely:
+```
+56789:;<=>?@ABCDEFGH
+56789:;<=>?@ABCDEFGH
+56789:;<=>?@ABCDEFGH
+56789:;<=>?@ABCDEFGH
+```
 
 ## Troubleshooting
 
 _If there are any likely problems or errors which many users might encounter, mention them here. Remove this section for very simple examples where nothing is likely to go wrong._
+* App generates errors and aborts.
+  * Make sure your wiring connection is right.
+  * Make sure you have configured your project with correct I2C pin assignments and LCD configuration.
+  * Rebuild your app, and then rerun.
+* Install and run the [I2C Tools](https://github.com/espressif/esp-idf/tree/master/examples/peripherals/i2c/i2c_tools) example from the [esp-idf](https://github.com/espressif/esp-idf/) to check that the I2C interface is working correctly.
+
+(For any technical queries, please open an [issue](https://github.com/bradkeifer/esp32-HD44780/issues) on GitHub. I will get back to you as soon as possible.)
 
 ## Example Breakdown
 
-_If the example source code is lengthy, complex, or cannot be easily understood, use this section to break down and explain the source code. This can be done by breaking down the execution path step by step, or explaining what each major function/task/source file does. Add sub titles if necessary. Remove this section for very simple examples where the source code is self explanatory._
+The LCD Demo app loops through a cycle of:
+* Checking for existence of LCD at the configured I2C address
+* Clearing the LCD screen
+* Writing the string ```20x4 I2C LCD```
+* Writing the string ```Lets write some characters!```
+* Clearing the LCD screen
+* Setting the cursor on and to blink
+* For each row of the display:
+ * Move the cursor to the leftmost column of the row
+ * Starts writing ascii characters left to right, starting with '!' and incrementing through the ascii character set.
+ * When half way across the row, the text direction is changed to be right to left and further characters are written back to the leftmost column of the display.
+ * The text direction is than changed back to left to right and incremented ascii characters are written across the entire row.
+  * If the row is even numbered, the entire display is shifted right by one character space.
+  * If the row is odd numbered, the entire display is shifted left by one character space.

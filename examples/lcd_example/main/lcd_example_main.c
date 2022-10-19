@@ -40,8 +40,6 @@ lcd_handle_t lcd_handle = LCD_HANDLE_DEFAULT_CONFIG();
 
 void app_main(void)
 {
-    esp_log_level_set(TAG, ESP_LOG_DEBUG);
-    esp_log_level_set("LCD Driver", ESP_LOG_DEBUG);
     initialise();
 
     while (true)
@@ -200,5 +198,5 @@ static void lcd_demo(void)
             vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     lcd_no_backlight(&lcd_handle);
-    ESP_LOGI(TAG, "lcd_Demo finished");
+    ESP_LOGI(TAG, "LCD Demo finished");
 }
