@@ -57,7 +57,7 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 ```
 I (390) lcd_example: Running LCD Demo
 I (390) lcd_example: Clear screen
-I (390) lcd_example: Write string:20x4 I2C LCD
+I (390) lcd_example: Write string:<columns>x<rows> I2C LCD
 I (1430) lcd_example: Clear screen
 I (1430) lcd_example: Write string:Lets write some characters!
 I (2520) lcd_example: Clear screen
@@ -94,9 +94,8 @@ For a 20x4 LCD display, the display will briefly show the following characters a
 
 ## Troubleshooting
 
-_If there are any likely problems or errors which many users might encounter, mention them here. Remove this section for very simple examples where nothing is likely to go wrong._
 * App generates errors and aborts.
-  * Make sure your wiring connection is right.
+  * Make sure your wiring connection is correct.
   * Make sure you have configured your project with correct I2C pin assignments and LCD configuration.
   * Rebuild your app, and then rerun.
 * Install and run the [I2C Tools](https://github.com/espressif/esp-idf/tree/master/examples/peripherals/i2c/i2c_tools) example from the [esp-idf](https://github.com/espressif/esp-idf/) to check that the I2C interface is working correctly.
@@ -105,7 +104,7 @@ _If there are any likely problems or errors which many users might encounter, me
 
 ## Example Breakdown
 
-The LCD Demo app loops through a cycle of:
+For a 4 row, 20 columns LCD, the LCD Demo app loops through a cycle of:
 * Checking for existence of LCD at the configured I2C address
 * Clearing the LCD screen
 * Writing the string ```20x4 I2C LCD```

@@ -92,13 +92,15 @@ static void lcd_demo(void)
 {
     char num[20];
     char c = '!'; // first ascii char
+    char str[80];
     bool lr_test_done = false;
 
     ESP_ERROR_CHECK(lcd_probe(&lcd_handle));
     ESP_LOGI(TAG, "Clear screen");
     lcd_clear_screen(&lcd_handle);
-    ESP_LOGI(TAG, "Write string:20x4 I2C LCD");
-    lcd_write_str(&lcd_handle, "20x4 I2C LCD");
+    ESP_LOGI(TAG, "Write string:<columns>x<rows> I2C LCD");
+    sprintf(str, "%dx%d I2C LCD", lcd_handle.columns, lcd_handle.rows);
+    lcd_write_str(&lcd_handle, str);
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     ESP_LOGI(TAG, "Clear screen");
     lcd_clear_screen(&lcd_handle);
