@@ -117,9 +117,9 @@ lcd-tools> help
 help 
   Print the list of registered commands
 
-lcd_config  --i2c_port=<0|1> --address=<0xaddr> --columns=<columns> --rows=<rows>
+lcd_config  --i2c_port=<0\\|1> --address=<0xaddr> --columns=<columns> --rows=<rows>
   Config LCD Parameters
-  --i2c_port=<0|1>  Set the I2C bus port number
+  --i2c_port=<0\\|1>  Set the I2C bus port number
   --address=<0xaddr>  Set the address of the LCD on the I2C bus
   --columns=<columns>  Set the number of columns of the LCD
   --rows=<rows>  Set the number of rows of the LCD
@@ -128,7 +128,7 @@ lcd_init
   Initialise the LCD panel
 
 lcd_detect 
-  Scan I2C bus for devices (may or may not be LCD\'s)
+  Scan I2C bus \\for devices (may or may not be LCD\'s)
 
 lcd_handle 
   Output the LCD handle data
@@ -206,20 +206,20 @@ restart
 tasks 
   Get information about running tasks
 
-deep_sleep  [-t <t>] [--io=<n>] [--io_level=<0|1>]
+deep_sleep  [-t <t>] [--io\\=<n>] [--io_level=<0\\|1>]
   Enter deep sleep mode. Two wakeup modes are supported: timer and GPIO. If no
   wakeup option is specified, will sleep indefinitely.
   -t, --time=<t>  Wake up time, ms
       --io=<n>  If specified, wakeup using GPIO with given number
   --io_level=<0|1>  GPIO level to trigger wakeup
 
-light_sleep  [-t <t>] [--io=<n>]... [--io_level=<0|1>]...
+light_sleep  [-t <t>] [--io\\=<n>]... [--io_level=<0\\|1>]...
   Enter light sleep mode. Two wakeup modes are supported: timer and GPIO. Mult
   iple GPIO pins can be specified using pairs of 'io' and 'io_level' arguments
   . Will also wake up on UART input.
   -t, --time=<t>  Wake up time, ms
       --io=<n>  If specified, wakeup using GPIO with given number
-  --io_level=<0|1>  GPIO level to trigger wakeup
+  --io_level=<0\\|1>  GPIO level to trigger wakeup
 ```
 
 ### Configure the LCD
@@ -248,7 +248,7 @@ lcd-tools> lcd_detect
 70: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 ```
 
-* Here we found the address of LCD is 0x3f.
+* Here we found the address of the LCD is 0x3f.
 
 ### Initialize the LCD
 
@@ -270,6 +270,7 @@ Success writing string: Hello World
 
 * I don’t find any available address when running `lcd_detect` command.
   * Make sure your wiring connection is right.
+  * Make sure you have configured your project with correct I2C pin assignments.
   * Reset your LCD device, and then run `lcd_detect` again.
 * Install and run the [I2C Tools](https://github.com/espressif/esp-idf/tree/master/examples/peripherals/i2c/i2c_tools) example from the [esp-idf](https://github.com/espressif/esp-idf/) to check that the I2C interface is working correctly.
 
