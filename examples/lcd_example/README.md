@@ -104,7 +104,7 @@ For a 20x4 LCD display, the display will briefly show the following characters a
 
 ## Example Breakdown
 
-For a 4 row, 20 columns LCD, the LCD Demo app loops through a cycle of:
+For a 20 column, 4 row LCD, the LCD Demo app loops through a cycle of:
 * Checking for existence of LCD at the configured I2C address
 * Clearing the LCD screen
 * Writing the string ```20x4 I2C LCD```
