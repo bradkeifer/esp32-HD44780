@@ -11,7 +11,7 @@
 #include "driver/i2c.h"
 #include "esp_console.h"
 #include "esp_log.h"
-#include "HD44780.h"
+#include "lcd.h"
 
 // I2C Tools defines
 #define I2C_MASTER_TX_BUF_DISABLE 0 /*!< I2C master doesn't need buffer */
@@ -663,7 +663,6 @@ static int do_lcd_write_str_cmd(int argc, char **argv)
     }
 
     /* Check "--string" option */
-    printf("Count = %d\n", lcd_write_str_args.str->count);
     if (lcd_write_str_args.str->count)
     {
         if (lcd_write_str(&lcd_handle, (char *)lcd_write_str_args.str->sval[0]) != ESP_OK)

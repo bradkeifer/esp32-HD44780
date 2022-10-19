@@ -8,24 +8,23 @@ menu "Example Configuration"
             command history. If this option is enabled, initalizes a FAT filesystem
             and uses it to store command history.
 
-            choice HARDWARE_I2C_PORT
-                bool "I2C peripheral to use"
-                default HARDWARE_I2C_PORT0
+    choice HARDWARE_I2C_PORT
+        bool "I2C peripheral to use"
+        default HARDWARE_I2C_PORT0
 
-                config HARDWARE_I2C_PORT0
-                    bool "I2C0"
-                config HARDWARE_I2C_PORT1
-                    bool "I2C1"
+        config HARDWARE_I2C_PORT0
+            bool "I2C0"
+        config HARDWARE_I2C_PORT1
+            bool "I2C1"
 
-            endchoice
+    endchoice
 
     config I2C_CLK_FREQ
-        int "I2C clk frequency"
+        int "I2C clock frequency"
         default 200000
         range 100000 4000000
         help
-            Increasing this value can reduce the execution time of the display.
-            Please refer to the relevant instructions of the display to adjust the value.
+            Clock rate to be used for the I2C bus.
 
     config SDA_GPIO
         int "SDA GPIO number"
@@ -33,7 +32,7 @@ menu "Example Configuration"
         default 8 if IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
         default 18 if IDF_TARGET_ESP32S2
         default 48 if IDF_TARGET_ESP32S3
-        default 13
+        default 18
         help
             GPIO number (IOxx) to be used for I2C Serial Data Line (SDA).
             Some GPIOs are used for other purposes (flash connections, etc.) and cannot be used for I2C comms.
@@ -41,10 +40,10 @@ menu "Example Configuration"
     config SCL_GPIO
         int "SCL GPIO number"
         range 0 48
-        default 8 if IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
-        default 18 if IDF_TARGET_ESP32S2
-        default 48 if IDF_TARGET_ESP32S3
-        default 16
+        default 6 if IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
+        default 19 if IDF_TARGET_ESP32S2
+        default 2 if IDF_TARGET_ESP32S3
+        default 19
         help
             GPIO number (IOxx) to be used for I2C Serical Clock (SCL).
             Some GPIOs are used for other purposes (flash connections, etc.) and cannot be used for I2C comms.
