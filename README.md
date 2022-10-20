@@ -2,7 +2,7 @@
 
 ## General Information
 
-This repository hosts  a ESP32 series Soc compatible driver for I2C-based alphanumeric Liquid Crystal Displays (LCD's) that use the Hitachi HD44780 controller.
+This repository hosts a ESP32 series Soc compatible driver for I2C-based alphanumeric Liquid Crystal Displays (LCD's) that use the Hitachi HD44780 controller. Additionally it provides some examples to assist in understanding the usage of the driver and to test its functionality.
 
 Inspired by and derived from the Arduino [LiquidCrystal_I2C](https://github.com/johnrickman/LiquidCrystal_I2C) driver and the subsequent basic port [ESP-IDF HD44780 (I2C) Driver](https://github.com/maxsydney/ESP32-HD44780).
 
