@@ -120,6 +120,7 @@ esp_err_t lcd_home(lcd_handle_t *handle);
  * @brief Write a character to the LCD
  *
  * @param[inout] handle LCD handle. Cursor position details are updated
+ * @param[in] c Character to be written to the LCD at the current cursor position
  *
  * @return  - ESP_OK     Success
  *          - ESP_ERR_INVALID_SIZE Write would cause screen display overflow
@@ -128,14 +129,17 @@ esp_err_t lcd_home(lcd_handle_t *handle);
 esp_err_t lcd_write_char(lcd_handle_t *handle, char c);
 
 /**
- * @brief Write a string to the LCD
- *
- * @param[inout] handle LCD handle. Cursor position details are updated
+ * @brief Write a character to the LCD
  *
  * @details Characters in the string are written to the LCD one character at a time.
  *          If the character string is too long for the LCD, only the characters that
  *          will fit on the display will be written and ESP_ERR_INVALID_SIZE error will
- *          be returned
+ *          be returned.
+ *          NOTE: This is not true - pls check the code Brad.
+ *
+ * @param[inout] handle LCD handle. Cursor position details are updated
+ * @param[in] str Character string to be written to the LCD starting at the current
+ *          cursor position
  *
  * @return  - ESP_OK     Success
  *          - ESP_ERR_INVALID_SIZE Write would cause screen display overflow
@@ -146,7 +150,12 @@ esp_err_t lcd_write_str(lcd_handle_t *handle, char *str);
 /**
  * @brief Move the cursor to a specified row and column
  *
+ * @details Column and row numbers commence at 0. Therefore, the home position is
+ *          col=0, row=0.
+ *
  * @param[inout] handle LCD handle. Cursor position details are updated.
+ * @param[in] col The column number to move the cursor to.
+ * @param[in] row The row number to move the cursor to.
  *
  * @return  - ESP_OK     Success
  *          - ESP_ERR_INVALID_ARG   Invalid parameter
