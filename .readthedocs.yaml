@@ -8,9 +8,8 @@ build:
     - pwd
     - echo $PATH
     - cd docs && pwd && build-docs -l en -bs html
-    - mkdir -p docs/_readthedocs
-    - cp -Rv docs/_build/en/generic/html docs/_readthedocs
-    - find . -name "_readthedocs*" -print
+    - mkdir -p _readthedocs
+    - cp -Rv docs/_build/en/generic/html _readthedocs
 #   jobs:
 #     pre_build:
 #       - doxygen docs/Doxyfile
