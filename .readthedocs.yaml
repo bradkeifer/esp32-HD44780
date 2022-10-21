@@ -5,4 +5,4 @@ build:
     python: "3.10"
   jobs:
     pre_build:
-      - doxygen
+      - doxygen docs/Doxyfile
