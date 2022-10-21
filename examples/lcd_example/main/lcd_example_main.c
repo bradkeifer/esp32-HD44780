@@ -4,8 +4,6 @@
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/i2c.h"
-#include "sdkconfig.h"
 #include "lcd.h"
 
 #define I2C_MASTER_SDA_IO CONFIG_SDA_GPIO
