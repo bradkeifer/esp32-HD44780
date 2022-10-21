@@ -41,6 +41,10 @@ extern "C" {
 #define LCD_SET_CGRAM_ADDR 0x40 /*<! Bitmask for "Set CGRAM address" instruction */
 #define LCD_SET_DDRAM_ADDR 0x80 /*!< Bitmask for "Set DDRAM address" instruction */
 
+// flags for backlight control - move to private include
+#define LCD_BACKLIGHT_CONTROL_ON 0x08   /*!< Backlight Control bitmask for backlight on */
+#define LCD_BACKLIGHT_CONTROL_OFF 0x00  /*!< Backlight Control bitmask for backlight off */
+
 // LCD Delay times
 #define LCD_PRE_PULSE_DELAY_US 1000 /*!< Not sure what this corresponds to in datasheet, but it is necessary */
 #define LCD_STD_EXEC_TIME_US 40 /*!< The standard execution time for most instructions */
