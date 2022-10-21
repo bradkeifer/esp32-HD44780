@@ -21,13 +21,8 @@ Documentation of the API can be found [here](https://lcd.keifer1.duckdns.org).
 
 ## Examples
 
-### Initialisation
+Two example apps are provided in the examples directory:
 
-```c
-#include "lcd.h"
+- lcd_example: This is a simple example and demonstrates initialization and some of the features of the LCD display.
 
-/**
- * Work in progress
-*/
-```
- 
+- lcd_tools: This is a tool to test connectivity and all features of your LCD display.

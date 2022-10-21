@@ -7,7 +7,7 @@
 
 ## Overview
 
-LCD Tools is a simple but very useful tool for developing LCD related applications. IT is derived from the [I2C Tools](https://github.com/espressif/esp-idf/tree/master/examples/peripherals/i2c/i2c_tools) example in the esp-idf. As follows, this example supports twenty two command-line tools:
+LCD Tools is a simple but very useful tool for developing LCD related applications. It is derived from the [I2C Tools](https://github.com/espressif/esp-idf/tree/master/examples/peripherals/i2c/i2c_tools) example in the esp-idf. As follows, this example supports twenty two command-line tools:
 
 1. `lcd_detect`: It will scan the configured I2C bus for devices and output a table with the list of detected devices on the bus. They may or may not be LCD devices.
 2. `lcd_config`: It will configure the I2C bus with specific GPIO number, port number, frequency, LCD address, rows and columns.
