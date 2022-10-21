@@ -7,7 +7,7 @@ build:
     - pip install esp_docs
     - pwd
     - echo $PATH
-    - cd docs && pwd && build_docs -l en -bs html
+    - cd docs && pwd && build-docs -l en -bs html
 #   jobs:
 #     pre_build:
 #       - doxygen docs/Doxyfile
