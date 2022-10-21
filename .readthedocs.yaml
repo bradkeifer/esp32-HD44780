@@ -9,7 +9,7 @@ build:
     - echo $PATH
     - cd docs && pwd && build-docs -l en -bs html
     - mkdir -p docs/_readthedocs
-    - cp -r docs/_build/en/generic/html docs/_readthedocs
+    - cp -Rv docs/_build/en/generic/html docs/_readthedocs
     - find . -name "_readthedocs*" -print
 #   jobs:
 #     pre_build:
