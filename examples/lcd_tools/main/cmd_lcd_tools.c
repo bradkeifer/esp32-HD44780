@@ -8,7 +8,6 @@
 */
 #include <stdio.h>
 #include "argtable3/argtable3.h"
-#include "driver/i2c.h"
 #include "esp_console.h"
 #include "esp_log.h"
 #include "lcd.h"
@@ -23,21 +22,6 @@
 #define ACK_VAL 0x0                 /*!< I2C ack value */
 #define NACK_VAL 0x1                /*!< I2C nack value */
 // end I2C Tools defines
-
-// LCD Tools defines
-#define I2C_MASTER_SDA_IO CONFIG_SDA_GPIO
-#define I2C_MASTER_SCL_IO CONFIG_SCL_GPIO
-
-#ifdef CONFIG_HARDWARE_I2C_PORT0
-#define I2C_MASTER_NUM I2C_NUM_0 /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
-#endif
-
-#ifdef CONFIG_HARDWARE_I2C_PORT1
-#define I2C_MASTER_NUM I2C_NUM_1 /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
-#endif
-
-#define I2C_MASTER_FREQ_HZ CONFIG_I2C_CLK_FREQ /*!< I2C master clock frequency */
-// end LCD Tools defines
 
 static const char *TAG = "cmd_lcd_tools";
 

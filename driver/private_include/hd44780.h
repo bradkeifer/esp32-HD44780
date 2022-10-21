@@ -9,8 +9,6 @@ extern "C" {
 #endif
 
 // I2C related defines
-#define I2C_MASTER_NUM I2C_NUM_0
-#define I2C_MASTER_FREQ_HZ 400000
 #define I2C_MASTER_TX_BUF_DISABLE 0 /*!< I2C master doesn't need buffer */
 #define I2C_MASTER_RX_BUF_DISABLE 0 /*!< I2C master doesn't need buffer */
 #define WRITE_BIT I2C_MASTER_WRITE  /*!< I2C master write */
@@ -21,15 +19,15 @@ extern "C" {
 #define NACK_VAL 0x1                /*!< I2C nack value */
 
 // LCD module defines
-#define LCD_LINEONE 0x00   // start of line 1
-#define LCD_LINETWO 0x40   // start of line 2
-#define LCD_LINETHREE 0x14 // start of line 3
-#define LCD_LINEFOUR 0x54  // start of line 4
+#define LCD_LINEONE 0x00   /*!< DDRAM address for start of row 0 */
+#define LCD_LINETWO 0x40   /*!< DDRAM address for start of row 1 */
+#define LCD_LINETHREE 0x14 /*!< DDRAM address for start of row 2 */
+#define LCD_LINEFOUR 0x54  /*!< DDRAM address for start of row 3 */
 
 #define LCD_ENABLE 0x04
 #define LCD_COMMAND 0x00
 #define LCD_WRITE 0x01
-#define Rs 0x01 // Register select bit
+#define Rs 0x01            /*!< Register select bit */
 
 // LCD instructions - refer Table 6 of Hitachi HD44780U datasheet
 #define LCD_CLEAR 0x01 /*!< Bitmask for "Clear display" instruction */

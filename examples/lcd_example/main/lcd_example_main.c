@@ -6,29 +6,6 @@
 #include "freertos/task.h"
 #include "lcd.h"
 
-#define I2C_MASTER_SDA_IO CONFIG_SDA_GPIO
-#define I2C_MASTER_SCL_IO CONFIG_SCL_GPIO
-
-#ifdef CONFIG_HARDWARE_I2C_PORT0
-#define I2C_MASTER_NUM I2C_NUM_0 /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
-#endif
-
-#ifdef CONFIG_HARDWARE_I2C_PORT1
-#define I2C_MASTER_NUM I2C_NUM_1 /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
-#endif
-
-#define I2C_MASTER_FREQ_HZ CONFIG_I2C_CLK_FREQ /*!< I2C master clock frequency */
-
-#define LCD_ADDR CONFIG_LCD_ADDR /*!< Address of the display on the i2c bus */
-#define LCD_ROWS CONFIG_LCD_ROWS
-#define LCD_COLUMNS CONFIG_LCD_COLUMNS
-#ifdef CONFIG_LCD_BACKLIGHT_ON
-#define LCD_BACKLIGHT LCD_BACKLIGHT_ON
-#endif
-#ifdef CONFIG_LCD_BACKLIGHT_OFF
-#define LCD_BACKLIGHT LCD_BACKLIGHT_OFF
-#endif
-
 static const char *TAG = "lcd_example";
 
 static void initialise(void);
