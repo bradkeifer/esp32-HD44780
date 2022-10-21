@@ -6,6 +6,10 @@ This repository hosts a ESP32 series Soc compatible driver for I2C-based alphanu
 
 Inspired by and derived from the Arduino [LiquidCrystal_I2C](https://github.com/johnrickman/LiquidCrystal_I2C) driver and the subsequent basic port [ESP-IDF HD44780 (I2C) Driver](https://github.com/maxsydney/ESP32-HD44780).
 
+## API Documentation
+
+Documentation of the API can be found [here](https://lcd.keifer1.duckdns.org).
+
 ## Installation Instructions
 
 
