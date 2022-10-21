@@ -5,9 +5,9 @@ build:
     python: "3.10"
   commands:
     - pip install esp_docs
-    - cd docs && pwd && build-docs -l en -bs html -b _readthedocs
-    - ls -l
-    - find _readthedocs -print
+    - cd docs && pwd && build-docs -l en -bs html
+    - mkdir -p _readthedocs
+    - cp -Rv docs/_build/en/generic/ _readthedocs
 #   jobs:
 #     pre_build:
 #       - doxygen docs/Doxyfile
