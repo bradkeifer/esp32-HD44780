@@ -1,6 +1,6 @@
 from esp_docs.conf_docs import *  # noqa: F403,F401
 
-languages = ['en', 'zh_CN']
+languages = ['en',]
 
 extensions += ['sphinx_copybutton',
                # Needed as a trigger for running doxygen
