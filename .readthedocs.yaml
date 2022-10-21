@@ -8,6 +8,7 @@ build:
     - pwd
     - echo $PATH
     - cd docs && pwd && build-docs -l en -bs html
+    - find . -name "_readthedocs*" -print
 #   jobs:
 #     pre_build:
 #       - doxygen docs/Doxyfile
