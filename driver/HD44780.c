@@ -88,6 +88,7 @@ static esp_err_t lcd_i2c_write(i2c_port_t port, uint8_t address, uint8_t data);
 
 esp_err_t lcd_init(lcd_handle_t *handle)
 {
+    esp_err_t ret = ESP_OK;
 
     ESP_LOGD(TAG,
              "Initialising LCD with:\n\ti2c_port: %d\n\tAddress: 0x%0x\n\tColumns: %d\n\tRows: %d\n\tDisplay Function: 0x%0x\n\tDisplay Control: 0x%0x\n\tDisplay Mode: 0x%0x\n\tCursor Column: %d\n\tCursor Row: %d\n\tBacklight: %d\n\tInitialised: %d",
@@ -109,36 +110,67 @@ esp_err_t lcd_init(lcd_handle_t *handle)
     }
 
     // Initialise the LCD controller by instruction for 4-bit interface
-    lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND); // First part of reset sequence
-    vTaskDelay(10 / portTICK_PERIOD_MS);                                     // 4.1 mS delay (min)
-    lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND); // second part of reset sequence
-    ets_delay_us(200);                                                       // 100 uS delay (min)
-    lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND); // Third time's a charm
-    lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_4BIT_MODE, LCD_COMMAND); // Activate 4-bit mode
-    ets_delay_us(80);                                                        // 40 uS delay (min)
+    // First part of reset sequence
+    ESP_GOTO_ON_ERROR(
+        lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND),
+        err, TAG, "Unable to complete Reset by Instruction. Part 1.");
+     // 4.1 mS delay (min)
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+    // second part of reset sequence
+    ESP_GOTO_ON_ERROR(
+        lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND),
+        err, TAG, "Unable to complete Reset by Instruction. Part 2.");
+     // 100 uS delay (min)
+    ets_delay_us(200);
+    // Third time's a charm
+    ESP_GOTO_ON_ERROR(
+        lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND),
+        err, TAG, "Unable to complete Reset by Instruction. Part 3.");
+    // Activate 4-bit mode
+    ESP_GOTO_ON_ERROR(
+        lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_4BIT_MODE, LCD_COMMAND),
+        err, TAG, "Unable to activate 4-bit mode.");
+    // 40 uS delay (min)
+    ets_delay_us(80);
 
     // --- Busy flag now available ---
     // Set Display Function: # line, font size, etc.
     // 37us max execution time with 270kHz clock
-    lcd_write_byte(handle, LCD_FUNCTION_SET | handle->display_function, LCD_COMMAND); // Set mode, lines, and font
+     // Set mode, lines, and font
+    ESP_GOTO_ON_ERROR(
+        lcd_write_byte(handle, LCD_FUNCTION_SET | handle->display_function, LCD_COMMAND),
+        err, TAG, "Unable to perform Set Display Function instruction.");
     ets_delay_us(LCD_STD_EXEC_TIME_US);
 
     // turn the display on with no cursor or blinking default
-    lcd_display(handle);
+    ESP_GOTO_ON_ERROR(
+        lcd_display(handle),
+        err, TAG, "Error with lcd_display()");
 
     // Clear Display instruction
-    lcd_clear_screen(handle);
+    ESP_GOTO_ON_ERROR(
+        lcd_clear_screen(handle),
+        err, TAG, "Error with lcd_clear_screen()");
 
     // Entry Mode Set instruction.
     // Sets cursor move direction and specifies display shift
     // 37us max execution time with 270kHz clock
-    lcd_write_byte(handle, LCD_ENTRY_MODE_SET | handle->display_mode, LCD_COMMAND);
+    ESP_GOTO_ON_ERROR(
+        lcd_write_byte(handle, LCD_ENTRY_MODE_SET | handle->display_mode, LCD_COMMAND),
+        err, TAG, "Unable to perform Entry Mode Set instruction.");
     ets_delay_us(LCD_STD_EXEC_TIME_US);
 
-    lcd_home(handle);
+    ESP_GOTO_ON_ERROR(
+        lcd_home(handle),
+        err, TAG, "Error with lcd_home()");
     handle->initialized = true;
 
-    return ESP_OK;
+    return ret;
+err:
+    if (ret == ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "I2C driver must be installed before attempting to initalize LCD.");
+    }
+    return ret;
 }
 
 esp_err_t lcd_write_char(lcd_handle_t *handle, char c)

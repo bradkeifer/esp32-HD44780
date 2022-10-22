@@ -117,9 +117,12 @@ typedef struct {
  *
  * @param[inout] lcd_handle Handle to be used for future interaction with the LCD panel
  *
+ * @details I2C driver must be configured and installed prior to calling lcd_init().
+ *
  * @return
  *          - ESP_OK                Success
  *          - ESP_ERR_INVALID_ARG   if parameter is invalid
+ *          - ESP_ERR_INVALID_STATE I2C driver not installed or not in master mode
  *          - ESP_ERR_NOT_FOUND     if LCD not found at the io handle
 */
 esp_err_t lcd_init(lcd_handle_t *lcd_handle);

@@ -196,12 +196,42 @@ static void register_lcd_detect(void)
     ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_detect_cmd));
 }
 
+static int do_i2c_init_cmd(int argc, char **argv)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = i2c_driver_install(lcd_handle.i2c_port, I2C_MODE_MASTER, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
+    if (ret != ESP_OK) {
+        printf("Unable to install i2c driver.\n");
+        fflush(stdout);
+        return 1;
+    }
+    ret = i2c_master_driver_initialize();
+    if (ret != ESP_OK) {
+        printf("Unable to initialize i2c driver.\n");
+        fflush(stdout);
+        return 1;
+    }
+    printf("I2C Driver installed and initalized.\n");
+    fflush(stdout);
+    return 0;
+}
+
+static void register_i2c_init(void)
+{
+    const esp_console_cmd_t i2c_init_cmd = {
+        .command = "i2c_init",
+        .help = "Install an initialise the I2C driver",
+        .hint = NULL,
+        .func = &do_i2c_init_cmd,
+        .argtable = NULL};
+    ESP_ERROR_CHECK(esp_console_cmd_register(&i2c_init_cmd));
+}
+
 static int do_lcd_init_cmd(int argc, char **argv)
 {
     esp_err_t ret = ESP_OK;
 
-    i2c_driver_install(lcd_handle.i2c_port, I2C_MODE_MASTER, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
-    i2c_master_driver_initialize();
     ret = lcd_init(&lcd_handle);
     if (ret == ESP_OK)
         printf("LCD successfully initialised\n");
@@ -677,6 +707,7 @@ static void register_lcd_write_str(void)
 void register_lcd_tools(void)
 {
     register_lcd_config();
+    register_i2c_init();
     register_lcd_init();
     register_lcd_detect();
     register_lcd_handle();
