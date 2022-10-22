@@ -1,3 +1,0 @@
-
-Application error:
-Cannot find source directory (/Users/bradold2/projects/esp32-HD44780/en)
