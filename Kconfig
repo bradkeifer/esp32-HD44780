@@ -13,11 +13,11 @@ menu "LCD Configuration"
 
     config I2C_CLK_FREQ
         int "I2C clock frequency"
-        default 200000
+        default 100000
         range 100000 4000000
         help
-            Increasing this value can reduce the execution time of the display.
-            Please refer to the relevant instructions of the display to adjust the value.
+            Standard-mode I2C is 100kHz, and that is what most I2C I/O expanders
+            will use.
 
     config SDA_GPIO
         int "SDA GPIO number"
