@@ -19,6 +19,12 @@ Documentation of the API can be found [here](https://lcd.keifer1.duckdns.org).
 - Configure I2C bus and LCD peripheral(s) using `menuconfig`
 - Include `lcd.h` in your code
 
+### Connecting the LCD Display
+
+Chances are that the LCD Display will require 5V power supply. The ESP32 is a 3V3 device and the I2C SDA and SCL lines will almost certainly require the use of external pull-up resistors. 
+
+I found that the example apps worked fine without using external pull-up resistors, but when I incorporated the LCD component into a more complex app that used wi-fi, I experienced strange access point connectivity issues. I eventually found that the solution to this was to apply 4k7 ohm pull-up resistors to a 3V3 power rail for both the SDA and SCL lines. A more complete solution would be to implement level shifting techniques on the I2C bus, as per NXP Semiconductors application note [AN10441](https://cdn-shop.adafruit.com/datasheets/AN10441.pdf).
+
 ## Examples
 
 Two example apps are provided in the examples directory:
