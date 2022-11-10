@@ -3,6 +3,7 @@
 **/build
 **/sdkconfig
 **/sdkconfig.old
+*.new
 
 # Sphinx documentation
 docs/_build/
