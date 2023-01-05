@@ -1,5 +1,5 @@
 set(COMPONENT_ADD_INCLUDEDIRS driver/include)
 set(COMPONENT_PRIV_INCLUDEDIRS driver/private_include)
 set(COMPONENT_REQUIRES driver)
-set(COMPONENT_SRCS driver/hd44780.c)
+set(COMPONENT_SRCS driver/HD44780.c)
 register_component()
