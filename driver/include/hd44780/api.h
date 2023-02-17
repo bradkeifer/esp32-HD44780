@@ -1,5 +1,7 @@
 #pragma once
 
+#include <esp_err.h>
+
 #include "fwd.h"
 
 #ifdef __cplusplus
