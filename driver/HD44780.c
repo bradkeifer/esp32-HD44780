@@ -50,7 +50,7 @@ static const char *TAG = "LCD Driver";
  * @param[in] nibble The 4 bits of data to be sent.
  * @param[in] mode [** to be defined **]
  */
-static esp_err_t lcd_write_nibble(lcd_handle_t *handle, uint8_t nibble, uint8_t mode);
+static esp_err_t lcd_write_nibble(const lcd_handle_t *handle, uint8_t nibble, uint8_t mode);
 
 /**
  * @brief Manage incrementing the cursor column of the LCD handle
@@ -82,8 +82,8 @@ static esp_err_t lcd_handle_increment_cursor(lcd_handle_t *handle);
 */
 static esp_err_t lcd_handle_decrement_cursor(lcd_handle_t *handle);
 
-static esp_err_t lcd_write_byte(lcd_handle_t *handle, uint8_t data, uint8_t mode);
-static esp_err_t lcd_pulse_enable(lcd_handle_t *handle, uint8_t nibble);
+static esp_err_t lcd_write_byte(const lcd_handle_t *handle, uint8_t data, uint8_t mode);
+static esp_err_t lcd_pulse_enable(const lcd_handle_t *handle, uint8_t nibble);
 static esp_err_t lcd_i2c_detect(i2c_port_t port, uint8_t address);
 static esp_err_t lcd_i2c_write(i2c_port_t port, uint8_t address, uint8_t data);
 
@@ -623,7 +623,7 @@ err:
 
 /************ low level data pushing commands **********/
 
-static esp_err_t lcd_write_nibble(lcd_handle_t *handle, uint8_t nibble, uint8_t mode)
+static esp_err_t lcd_write_nibble(const lcd_handle_t *handle, uint8_t nibble, uint8_t mode)
 {
     esp_err_t ret = ESP_OK;
     uint8_t data = 0;
@@ -654,7 +654,7 @@ err:
     return ret;
 }
 
-static esp_err_t lcd_write_byte(lcd_handle_t *handle, uint8_t data, uint8_t mode)
+static esp_err_t lcd_write_byte(const lcd_handle_t *handle, uint8_t data, uint8_t mode)
 {
     esp_err_t ret;
 
@@ -672,7 +672,7 @@ err:
     return ret;
 }
 
-static esp_err_t lcd_pulse_enable(lcd_handle_t *handle, uint8_t data)
+static esp_err_t lcd_pulse_enable(const lcd_handle_t *handle, uint8_t data)
 {
     esp_err_t ret = ESP_OK;
 
@@ -691,7 +691,7 @@ err:
     return ret;
 }
 
-esp_err_t lcd_probe(lcd_handle_t *handle)
+esp_err_t lcd_probe(const lcd_handle_t *handle)
 {
     esp_err_t ret = ESP_OK;
 

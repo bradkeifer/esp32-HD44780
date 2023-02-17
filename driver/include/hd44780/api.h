@@ -36,7 +36,7 @@ esp_err_t lcd_init(lcd_handle_t *lcd_handle);
  *          - ESP_ERR_INVALID_STATE I2C driver not installed or not in master mode
  *          - ESP_ERR_TIMEOUT       Operation timeout because the bus is busy
 */
-esp_err_t lcd_probe(lcd_handle_t *handle);
+esp_err_t lcd_probe(const lcd_handle_t *handle);
 
 /**
  * @brief Move the cursor to the home position
