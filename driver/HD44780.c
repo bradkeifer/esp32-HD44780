@@ -7,6 +7,7 @@
 #include "sdkconfig.h"
 #include "rom/ets_sys.h"
 #include "lcd.h"
+#include "hd44780/handle.h"
 #include "hd44780.h"
 
 // Pin mappings
