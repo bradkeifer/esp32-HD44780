@@ -115,13 +115,13 @@ esp_err_t lcd_init(lcd_handle_t *handle)
     ESP_GOTO_ON_ERROR(
         lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND),
         err, TAG, "Unable to complete Reset by Instruction. Part 1.");
-     // 4.1 mS delay (min)
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+     // 4.1 ms delay (min)
+    vTaskDelay(pdMS_TO_TICKS(10));
     // second part of reset sequence
     ESP_GOTO_ON_ERROR(
         lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND),
         err, TAG, "Unable to complete Reset by Instruction. Part 2.");
-     // 100 uS delay (min)
+     // 100 us delay (min)
     ets_delay_us(200);
     // Third time's a charm
     ESP_GOTO_ON_ERROR(
@@ -131,7 +131,7 @@ esp_err_t lcd_init(lcd_handle_t *handle)
     ESP_GOTO_ON_ERROR(
         lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_4BIT_MODE, LCD_COMMAND),
         err, TAG, "Unable to activate 4-bit mode.");
-    // 40 uS delay (min)
+    // 40 us delay (min)
     ets_delay_us(80);
 
     // --- Busy flag now available ---
@@ -227,7 +227,7 @@ esp_err_t lcd_home(lcd_handle_t *handle)
         lcd_write_byte(handle, LCD_HOME, LCD_COMMAND),
         err, TAG, "Error with lcd_write_byte()");
     // 1.52ms execution time for 270kHz oscillator frequency
-    vTaskDelay((LCD_HOME_EXEC_TIME_US / 1000) / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(LCD_HOME_EXEC_TIME_US / 1000));
     handle->cursor_row = 0;
     handle->cursor_column = 0;
 
@@ -616,7 +616,7 @@ static esp_err_t lcd_handle_decrement_cursor(lcd_handle_t *handle)
     }
     return ret;
 err:
-    ESP_LOGE(TAG, "lcd_handle_increment_cursor:%s", esp_err_to_name(ret));
+    ESP_LOGE(TAG, "lcd_handle_decrement_cursor:%s", esp_err_to_name(ret));
     return ret;
 }
 
@@ -746,13 +746,13 @@ static esp_err_t lcd_i2c_write(i2c_port_t port, uint8_t address, uint8_t data)
 
     ESP_GOTO_ON_ERROR(
         i2c_master_write_byte(cmd, (address << 1) | WRITE_BIT, ACK_CHECK_EN),
-        err, TAG, "Error with ic2_master_write_byte()");
+        err, TAG, "Error with i2c_master_write_byte()");
 
     if (data != 0)
     {
         ESP_GOTO_ON_ERROR(
             i2c_master_write_byte(cmd, data, ACK_CHECK_EN),
-            err, TAG, "Error with ic2_master_write_byte()");
+            err, TAG, "Error with i2c_master_write_byte()");
     }
 
     ESP_GOTO_ON_ERROR(
