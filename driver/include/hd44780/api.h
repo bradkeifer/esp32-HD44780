@@ -294,6 +294,23 @@ esp_err_t lcd_backlight(lcd_handle_t *handle);
 esp_err_t lcd_no_backlight(lcd_handle_t *handle);
 
 
+/**
+ * @brief Write custom character to CGRAM at specified location.
+ *
+ * @details Writes character given in byte array[8] to CGRAM and resets cursor address.
+ *
+ * @param[inout] handle LCD handle. Character written to CGRAM. Cursor position set to 0.
+ * @param[in] location The location in CGRAM.
+ * @param[in] charmap The character bitmap in form of byte array[8].
+ *
+ * @return
+ *          - ESP_OK     Success
+ *          - ESP_ERR_INVALID_ARG   Invalid parameter
+ *          - ESP error code propagated from error source
+*/
+esp_err_t lcd_write_cgram(lcd_handle_t *handle, uint8_t location, uint8_t *charmap);
+
+
 #ifdef __cplusplus
 }
 #endif

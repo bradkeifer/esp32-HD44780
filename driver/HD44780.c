@@ -64,7 +64,7 @@ static esp_err_t lcd_write_nibble(const lcd_handle_t *handle, uint8_t nibble, ui
  *
  * @returns - ESP_OK Success
  *          - ESP_ERR_INVALID_ARG   Invalid paramater
-*/
+ */
 static esp_err_t lcd_handle_increment_cursor(lcd_handle_t *handle);
 
 /**
@@ -79,9 +79,10 @@ static esp_err_t lcd_handle_increment_cursor(lcd_handle_t *handle);
  *
  * @returns - ESP_OK Success
  *          - ESP_ERR_INVALID_ARG   Invalid paramater
-*/
+ */
 static esp_err_t lcd_handle_decrement_cursor(lcd_handle_t *handle);
 
+static esp_err_t lcd_null_operation(lcd_handle_t *handle);
 static esp_err_t lcd_write_byte(const lcd_handle_t *handle, uint8_t data, uint8_t mode);
 static esp_err_t lcd_pulse_enable(const lcd_handle_t *handle, uint8_t nibble);
 static esp_err_t lcd_i2c_detect(i2c_port_t port, uint8_t address);
@@ -115,13 +116,13 @@ esp_err_t lcd_init(lcd_handle_t *handle)
     ESP_GOTO_ON_ERROR(
         lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND),
         err, TAG, "Unable to complete Reset by Instruction. Part 1.");
-     // 4.1 mS delay (min)
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    // 4.1 ms delay (min)
+    vTaskDelay(pdMS_TO_TICKS(10));
     // second part of reset sequence
     ESP_GOTO_ON_ERROR(
         lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_8BIT_MODE, LCD_COMMAND),
         err, TAG, "Unable to complete Reset by Instruction. Part 2.");
-     // 100 uS delay (min)
+    // 100 us delay (min)
     ets_delay_us(200);
     // Third time's a charm
     ESP_GOTO_ON_ERROR(
@@ -131,13 +132,13 @@ esp_err_t lcd_init(lcd_handle_t *handle)
     ESP_GOTO_ON_ERROR(
         lcd_write_nibble(handle, LCD_FUNCTION_SET | LCD_4BIT_MODE, LCD_COMMAND),
         err, TAG, "Unable to activate 4-bit mode.");
-    // 40 uS delay (min)
+    // 40 us delay (min)
     ets_delay_us(80);
 
     // --- Busy flag now available ---
     // Set Display Function: # line, font size, etc.
     // 37us max execution time with 270kHz clock
-     // Set mode, lines, and font
+    // Set mode, lines, and font
     ESP_GOTO_ON_ERROR(
         lcd_write_byte(handle, LCD_FUNCTION_SET | handle->display_function, LCD_COMMAND),
         err, TAG, "Unable to perform Set Display Function instruction.");
@@ -168,7 +169,8 @@ esp_err_t lcd_init(lcd_handle_t *handle)
 
     return ret;
 err:
-    if (ret == ESP_ERR_INVALID_STATE) {
+    if (ret == ESP_ERR_INVALID_STATE)
+    {
         ESP_LOGE(TAG, "I2C driver must be installed before attempting to initalize LCD.");
     }
     return ret;
@@ -179,7 +181,7 @@ esp_err_t lcd_write_char(lcd_handle_t *handle, char c)
     esp_err_t ret = ESP_OK;
 
     ESP_GOTO_ON_FALSE(handle, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
-    ESP_GOTO_ON_FALSE(c, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
+    // ESP_GOTO_ON_FALSE(c, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument"); // dont block null char, which might be assigned in CGRAM
 
     // Write data to DDRAM
     ESP_GOTO_ON_ERROR(
@@ -206,11 +208,11 @@ esp_err_t lcd_write_str(lcd_handle_t *handle, char *str)
 {
     esp_err_t ret = ESP_OK;
 
-    while (*str)
+    while (*str) // automatically stops when null
     {
         ESP_GOTO_ON_ERROR(
             lcd_write_char(handle, *str++),
-        err, TAG, "Error with lcd_write_char()");
+            err, TAG, "Error with lcd_write_char()");
     }
     return ret;
 err:
@@ -227,7 +229,7 @@ esp_err_t lcd_home(lcd_handle_t *handle)
         lcd_write_byte(handle, LCD_HOME, LCD_COMMAND),
         err, TAG, "Error with lcd_write_byte()");
     // 1.52ms execution time for 270kHz oscillator frequency
-    vTaskDelay((LCD_HOME_EXEC_TIME_US / 1000) / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(LCD_HOME_EXEC_TIME_US / 1000));
     handle->cursor_row = 0;
     handle->cursor_column = 0;
 
@@ -254,7 +256,7 @@ esp_err_t lcd_set_cursor(lcd_handle_t *handle, uint8_t column, uint8_t row)
     // Why is this not using Cursor/Display Shift Instruction??
     ESP_GOTO_ON_ERROR(
         lcd_write_byte(handle, LCD_SET_DDRAM_ADDR | (column + row_offsets[row]), LCD_COMMAND),
-        err, TAG, "Error with lcd_set_cursor()");
+        err, TAG, "Error with lcd_write_byte()");
     // 37us execution time for 270kHz oscillator frequency
     ets_delay_us(LCD_STD_EXEC_TIME_US);
     handle->cursor_column = column;
@@ -290,11 +292,12 @@ esp_err_t lcd_no_display(lcd_handle_t *handle)
     esp_err_t ret = ESP_OK;
 
     ret = lcd_write_byte(handle,
-            LCD_DISPLAY_CONTROL | (handle->display_control & ~LCD_DISPLAY_ON),
-            LCD_COMMAND);
+                         LCD_DISPLAY_CONTROL | (handle->display_control & ~LCD_DISPLAY_ON),
+                         LCD_COMMAND);
     // 37us execution time for 270kHz oscillator frequency
     ets_delay_us(LCD_STD_EXEC_TIME_US);
-    if (ret != ESP_OK) goto err;
+    if (ret != ESP_OK)
+        goto err;
     handle->display_control &= ~LCD_DISPLAY_ON;
 
     return ESP_OK;
@@ -308,11 +311,12 @@ esp_err_t lcd_display(lcd_handle_t *handle)
     esp_err_t ret = ESP_OK;
 
     ret = lcd_write_byte(handle,
-            LCD_DISPLAY_CONTROL | (handle->display_control | LCD_DISPLAY_ON),
-            LCD_COMMAND);
+                         LCD_DISPLAY_CONTROL | (handle->display_control | LCD_DISPLAY_ON),
+                         LCD_COMMAND);
     // 37us max execution time with 270kHz clock
     ets_delay_us(LCD_STD_EXEC_TIME_US);
-    if (ret != ESP_OK) goto err;
+    if (ret != ESP_OK)
+        goto err;
     handle->display_control |= LCD_DISPLAY_ON;
 
     return ESP_OK;
@@ -326,11 +330,12 @@ esp_err_t lcd_no_cursor(lcd_handle_t *handle)
     esp_err_t ret = ESP_OK;
 
     ret = lcd_write_byte(handle,
-        LCD_DISPLAY_CONTROL | (handle->display_control & ~LCD_CURSOR_ON),
-        LCD_COMMAND);
+                         LCD_DISPLAY_CONTROL | (handle->display_control & ~LCD_CURSOR_ON),
+                         LCD_COMMAND);
     // 37us execution time for 270kHz oscillator frequency
     ets_delay_us(LCD_STD_EXEC_TIME_US);
-    if (ret != ESP_OK) goto err;
+    if (ret != ESP_OK)
+        goto err;
     handle->display_control &= ~LCD_CURSOR_ON;
 
     return ESP_OK;
@@ -338,16 +343,18 @@ err:
     ESP_LOGE(TAG, "lcd_no_cursor:%s", esp_err_to_name(ret));
     return ret;
 }
+
 esp_err_t lcd_cursor(lcd_handle_t *handle)
 {
     esp_err_t ret = ESP_OK;
 
     ret = lcd_write_byte(handle,
-        LCD_DISPLAY_CONTROL | (handle->display_control | LCD_CURSOR_ON),
-        LCD_COMMAND);
+                         LCD_DISPLAY_CONTROL | (handle->display_control | LCD_CURSOR_ON),
+                         LCD_COMMAND);
     // 37us execution time for 270kHz oscillator frequency
     ets_delay_us(LCD_STD_EXEC_TIME_US);
-    if (ret != ESP_OK) goto err;
+    if (ret != ESP_OK)
+        goto err;
     handle->display_control |= LCD_CURSOR_ON;
 
     return ESP_OK;
@@ -361,11 +368,12 @@ esp_err_t lcd_no_blink(lcd_handle_t *handle)
     esp_err_t ret = ESP_OK;
 
     ret = lcd_write_byte(handle,
-        LCD_DISPLAY_CONTROL | (handle->display_control & ~LCD_BLINK_ON),
-        LCD_COMMAND);
+                         LCD_DISPLAY_CONTROL | (handle->display_control & ~LCD_BLINK_ON),
+                         LCD_COMMAND);
     // 37us execution time for 270kHz oscillator frequency
     ets_delay_us(LCD_STD_EXEC_TIME_US);
-    if (ret != ESP_OK) goto err;
+    if (ret != ESP_OK)
+        goto err;
     handle->display_control &= ~LCD_BLINK_ON;
 
     return ESP_OK;
@@ -379,11 +387,12 @@ esp_err_t lcd_blink(lcd_handle_t *handle)
     esp_err_t ret = ESP_OK;
 
     ret = lcd_write_byte(handle,
-        LCD_DISPLAY_CONTROL | (handle->display_control | LCD_BLINK_ON),
-        LCD_COMMAND);
+                         LCD_DISPLAY_CONTROL | (handle->display_control | LCD_BLINK_ON),
+                         LCD_COMMAND);
     // 37us execution time for 270kHz oscillator frequency
     ets_delay_us(LCD_STD_EXEC_TIME_US);
-    if (ret != ESP_OK) goto err;
+    if (ret != ESP_OK)
+        goto err;
     handle->display_control |= LCD_BLINK_ON;
 
     return ESP_OK;
@@ -397,11 +406,12 @@ esp_err_t lcd_display_shift_left(lcd_handle_t *handle)
     esp_err_t ret = ESP_OK;
 
     ret = lcd_write_byte(handle,
-            LCD_CURSOR_OR_DISPLAY_SHIFT | LCD_DISPLAY_MOVE | LCD_MOVE_LEFT,
-            LCD_COMMAND);
+                         LCD_CURSOR_OR_DISPLAY_SHIFT | LCD_DISPLAY_MOVE | LCD_MOVE_LEFT,
+                         LCD_COMMAND);
     // 37us execution time for 270kHz oscillator frequency
     ets_delay_us(LCD_STD_EXEC_TIME_US);
-    if (ret != ESP_OK) goto err;
+    if (ret != ESP_OK)
+        goto err;
     return lcd_handle_decrement_cursor(handle);
 err:
     ESP_LOGE(TAG, "lcd_display_shift_left:%s", esp_err_to_name(ret));
@@ -413,11 +423,12 @@ esp_err_t lcd_display_shift_right(lcd_handle_t *handle)
     esp_err_t ret = ESP_OK;
 
     ret = lcd_write_byte(handle,
-            LCD_CURSOR_OR_DISPLAY_SHIFT | LCD_DISPLAY_MOVE | LCD_MOVE_RIGHT,
-            LCD_COMMAND);
+                         LCD_CURSOR_OR_DISPLAY_SHIFT | LCD_DISPLAY_MOVE | LCD_MOVE_RIGHT,
+                         LCD_COMMAND);
     // 37us execution time for 270kHz oscillator frequency
     ets_delay_us(LCD_STD_EXEC_TIME_US);
-    if (ret != ESP_OK) goto err;
+    if (ret != ESP_OK)
+        goto err;
     return lcd_handle_increment_cursor(handle);
 err:
     ESP_LOGE(TAG, "lcd_display_shift_right:%s", esp_err_to_name(ret));
@@ -430,11 +441,12 @@ esp_err_t lcd_left_to_right(lcd_handle_t *handle)
     esp_err_t ret = ESP_OK;
 
     ret = lcd_write_byte(handle,
-        LCD_ENTRY_MODE_SET | (handle->display_mode | LCD_ENTRY_INCREMENT),
-        LCD_COMMAND);
+                         LCD_ENTRY_MODE_SET | (handle->display_mode | LCD_ENTRY_INCREMENT),
+                         LCD_COMMAND);
     // 37us execution time for 270kHz oscillator frequency
     ets_delay_us(LCD_STD_EXEC_TIME_US);
-    if (ret != ESP_OK) goto err;
+    if (ret != ESP_OK)
+        goto err;
     handle->display_mode |= LCD_ENTRY_INCREMENT;
 
     return ESP_OK;
@@ -449,11 +461,12 @@ esp_err_t lcd_right_to_left(lcd_handle_t *handle)
     esp_err_t ret = ESP_OK;
 
     ret = lcd_write_byte(handle,
-        LCD_ENTRY_MODE_SET | (handle->display_mode & ~LCD_ENTRY_INCREMENT),
-        LCD_COMMAND);
+                         LCD_ENTRY_MODE_SET | (handle->display_mode & ~LCD_ENTRY_INCREMENT),
+                         LCD_COMMAND);
     // 37us execution time for 270kHz oscillator frequency
     ets_delay_us(LCD_STD_EXEC_TIME_US);
-    if (ret != ESP_OK) goto err;
+    if (ret != ESP_OK)
+        goto err;
     handle->display_mode &= ~LCD_ENTRY_INCREMENT;
 
     return ESP_OK;
@@ -470,11 +483,12 @@ esp_err_t lcd_autoscroll(lcd_handle_t *handle)
     goto err;
 
     ret = lcd_write_byte(handle,
-        LCD_ENTRY_MODE_SET | (handle->display_mode | LCD_ENTRY_DISPLAY_SHIFT),
-        LCD_COMMAND);
+                         LCD_ENTRY_MODE_SET | (handle->display_mode | LCD_ENTRY_DISPLAY_SHIFT),
+                         LCD_COMMAND);
     // 37us execution time for 270kHz oscillator frequency
     ets_delay_us(LCD_STD_EXEC_TIME_US);
-    if (ret != ESP_OK) goto err;
+    if (ret != ESP_OK)
+        goto err;
     handle->display_mode |= LCD_ENTRY_DISPLAY_SHIFT;
     return ESP_OK;
 err:
@@ -487,44 +501,112 @@ esp_err_t lcd_no_autoscroll(lcd_handle_t *handle)
     esp_err_t ret = ESP_OK;
 
     ret = lcd_write_byte(handle,
-        LCD_ENTRY_MODE_SET | (handle->display_mode & ~LCD_ENTRY_DISPLAY_SHIFT),
-        LCD_COMMAND);
+                         LCD_ENTRY_MODE_SET | (handle->display_mode & ~LCD_ENTRY_DISPLAY_SHIFT),
+                         LCD_COMMAND);
     // 37us execution time for 270kHz oscillator frequency
     ets_delay_us(LCD_STD_EXEC_TIME_US);
-    if (ret != ESP_OK) goto err;
+    if (ret != ESP_OK)
+        goto err;
     handle->display_mode &= ~LCD_ENTRY_DISPLAY_SHIFT;
     return ESP_OK;
 err:
     ESP_LOGE(TAG, "lcd_no_autoscroll:%s", esp_err_to_name(ret));
     return ret;
 }
-/*
-// Allows us to fill the first 8 CGRAM locations
-// with custom characters
-void lcd_createChar(uint8_t location, uint8_t charmap[])
-{
-    location &= 0x7; // we only have 8 locations
-    lcd_write_byte(LCD_SET_CGRAM_ADDR | (location << 3), LCD_COMMAND);
-    for (int i = 0; i < 8; i++)
-    {
-        lcd_write_byte(charmap[i], Rs);
-    }
-}
-*/
 
 esp_err_t lcd_backlight(lcd_handle_t *handle)
 {
     handle->backlight = LCD_BACKLIGHT_ON;
     // Closest thing we have to a noop. We need an instruction to effect the backlight change
-    return(lcd_set_cursor(handle, handle->cursor_column, handle->cursor_row));
+    // return (lcd_set_cursor(handle, handle->cursor_column, handle->cursor_row));
+    return lcd_null_operation(handle);
 }
 
 esp_err_t lcd_no_backlight(lcd_handle_t *handle)
 {
     handle->backlight = LCD_BACKLIGHT_OFF;
     // Closest thing we have to a noop. We need an instruction to effect the backlight change
-    return(lcd_set_cursor(handle, handle->cursor_column, handle->cursor_row));
+    // return (lcd_set_cursor(handle, handle->cursor_column, handle->cursor_row));
+    return lcd_null_operation(handle);
 }
+
+/************ CGRAM manipulation **********/
+
+esp_err_t lcd_write_cgram(lcd_handle_t *handle, uint8_t location, uint8_t *charmap)
+{
+    esp_err_t ret;
+
+    ESP_GOTO_ON_FALSE(handle, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
+    ESP_GOTO_ON_FALSE(charmap, ESP_ERR_INVALID_ARG, err, TAG, "Invalid argument");
+
+    location &= 0x7; // we only have 8 locations (or 4 with 5x10, lowest bit doesnt matter)
+    uint8_t len = (handle->display_function & LCD_5x10DOTS) ? 10 : 8;
+
+    ESP_GOTO_ON_ERROR(
+        lcd_write_byte(handle, LCD_SET_CGRAM_ADDR | (location << 3), LCD_COMMAND),
+        err, TAG, "Error with lcd_write_byte()");
+
+    for (uint8_t i = 0; i < len; ++i)
+    {
+        ESP_GOTO_ON_ERROR(
+            lcd_write_byte(handle, charmap[i], LCD_WRITE),
+            err, TAG, "Error with lcd_write_byte()");
+    }
+    ESP_GOTO_ON_ERROR(
+        lcd_set_cursor(handle, 0, 0),
+        err, TAG, "Error with lcd_set_cursor()");
+
+    return ESP_OK;
+err:
+    ESP_LOGE(TAG, "lcd_set_cursor:%s", esp_err_to_name(ret));
+    return ret;
+}
+
+/*
+// Allows us to fill the first 8 CGRAM locations
+// with custom characters
+
+
+https://github.com/longtengj/esp-idf-sensor/blob/master/components/hd44780/hd44780.c
+
+esp_err_t hd44780_upload_character(const hd44780_t *lcd, uint8_t num, const uint8_t *data)
+{
+    CHECK_ARG(lcd);
+    CHECK_ARG(num < 8);
+    CHECK_ARG(data);
+
+    uint8_t bytes = lcd->font == HD44780_FONT_5X8 ? 8 : 10;
+    CHECK(write_byte(lcd, CMD_CGRAM_ADDR + num * bytes, false));
+    short_delay();
+    for (uint8_t i = 0; i < bytes; i ++)
+    {
+        CHECK(write_byte(lcd, data[i], true));
+        short_delay();
+    }
+
+    CHECK(hd44780_gotoxy(lcd, 0, 0));
+
+    return ESP_OK;
+}
+
+
+https://github.com/anothermist/DISPLAYS/blob/master/HD44780_AVR/hd44780.c
+
+
+
+
+void lcd_create_char(unsigned char location, unsigned char *charmap) {
+    lcd_command(LCD_SETCGRAMADDR | ((location & 0x7) << 3));
+    for (int i = 0; i < 8; i++) {
+        lcd_write(charmap[i]);
+    }
+    lcd_command(LCD_SETDDRAMADDR);
+}
+
+
+
+
+*/
 
 static esp_err_t lcd_handle_increment_cursor(lcd_handle_t *handle)
 {
@@ -540,7 +622,7 @@ static esp_err_t lcd_handle_increment_cursor(lcd_handle_t *handle)
          * perspective, but that doesn't translate nicely to rows.
          * It would be nice to find a more robust algorithm than that which
          * is used below
-        */
+         */
         handle->cursor_column = 0;
         if (handle->rows == 4)
         {
@@ -554,8 +636,8 @@ static esp_err_t lcd_handle_increment_cursor(lcd_handle_t *handle)
                 handle->cursor_row = 0;
             else
             {
-                ESP_LOGE(TAG,"Invalid cursor row (%d). Range is [0 - %d]",
-                    handle->cursor_row, handle->rows);
+                ESP_LOGE(TAG, "Invalid cursor row (%d). Range is [0 - %d]",
+                         handle->cursor_row, handle->rows);
                 return ESP_ERR_INVALID_STATE;
             }
         }
@@ -563,8 +645,8 @@ static esp_err_t lcd_handle_increment_cursor(lcd_handle_t *handle)
             handle->cursor_row = (handle->cursor_row + 1) % handle->rows;
         else
         {
-            ESP_LOGE(TAG, "Untested lcd_increment_cursor scenaro. Rows =%d\n",
-                handle->rows);
+            ESP_LOGE(TAG, "Untested lcd_increment_cursor scenario. Rows =%d\n",
+                     handle->rows);
             return ESP_ERR_INVALID_SIZE;
         }
     }
@@ -588,7 +670,7 @@ static esp_err_t lcd_handle_decrement_cursor(lcd_handle_t *handle)
          * perspective, but that doesn't translate nicely to rows.
          * It would be nice to find a more robust algorithm than that which
          * is used below
-        */
+         */
         handle->cursor_column = (handle->columns - 1);
         if (handle->rows == 4)
         {
@@ -602,8 +684,8 @@ static esp_err_t lcd_handle_decrement_cursor(lcd_handle_t *handle)
                 handle->cursor_row = 1;
             else
             {
-                ESP_LOGE(TAG,"Invalid cursor row (%d). Range is [0 - %d]",
-                    handle->cursor_row, handle->rows);
+                ESP_LOGE(TAG, "Invalid cursor row (%d). Range is [0 - %d]",
+                         handle->cursor_row, handle->rows);
                 return ESP_ERR_INVALID_STATE;
             }
         }
@@ -616,12 +698,29 @@ static esp_err_t lcd_handle_decrement_cursor(lcd_handle_t *handle)
     }
     return ret;
 err:
-    ESP_LOGE(TAG, "lcd_handle_increment_cursor:%s", esp_err_to_name(ret));
+    ESP_LOGE(TAG, "lcd_handle_decrement_cursor:%s", esp_err_to_name(ret));
     return ret;
 }
 
-
 /************ low level data pushing commands **********/
+
+static esp_err_t lcd_null_operation(lcd_handle_t *handle)
+{
+    esp_err_t ret = ESP_OK;
+
+    ret = lcd_write_byte(handle,
+                         LCD_DISPLAY_CONTROL | handle->display_control,
+                         LCD_COMMAND);
+    // 37us execution time for 270kHz oscillator frequency
+    ets_delay_us(LCD_STD_EXEC_TIME_US);
+    if (ret != ESP_OK)
+        goto err;
+
+    return ESP_OK;
+err:
+    ESP_LOGE(TAG, "lcd_cursor:%s", esp_err_to_name(ret));
+    return ret;
+}
 
 static esp_err_t lcd_write_nibble(const lcd_handle_t *handle, uint8_t nibble, uint8_t mode)
 {
@@ -746,13 +845,13 @@ static esp_err_t lcd_i2c_write(i2c_port_t port, uint8_t address, uint8_t data)
 
     ESP_GOTO_ON_ERROR(
         i2c_master_write_byte(cmd, (address << 1) | WRITE_BIT, ACK_CHECK_EN),
-        err, TAG, "Error with ic2_master_write_byte()");
+        err, TAG, "Error with i2c_master_write_byte()");
 
     if (data != 0)
     {
         ESP_GOTO_ON_ERROR(
             i2c_master_write_byte(cmd, data, ACK_CHECK_EN),
-            err, TAG, "Error with ic2_master_write_byte()");
+            err, TAG, "Error with i2c_master_write_byte()");
     }
 
     ESP_GOTO_ON_ERROR(
