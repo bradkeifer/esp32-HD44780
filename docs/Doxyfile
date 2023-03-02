@@ -20,8 +20,9 @@ PROJECT_NAME = "LCD API Programming Guide"
 ## These files are placed in '_inc' directory
 ## and used to include in API reference documentation
 
+#    $(PROJECT_PATH)/driver/include/lcd.h \
 INPUT = \
-    $(PROJECT_PATH)/driver/include/lcd.h
+    $(PROJECT_PATH)/driver/include/hd44780/api.h
 
 ## Get warnings for functions that have no documentation for their parameters or return value
 ##

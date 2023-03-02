@@ -20,4 +20,4 @@ Application examples demonstrating the functionality of the LCD library are prov
 API Reference
 -------------
 
-.. include-build-file:: inc/lcd.inc
+.. include-build-file:: inc/api.inc
