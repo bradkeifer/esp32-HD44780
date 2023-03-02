@@ -27,10 +27,6 @@ INPUT = \
 ##
 WARN_NO_PARAMDOC = YES
 
-## Get warnings for functions that have no documentation for their parameters or return value
-##
-WARN_NO_PARAMDOC = YES
-
 ## Enable preprocessing and remove __attribute__(...) expressions from the INPUT files
 ##
 ENABLE_PREPROCESSING   = YES
